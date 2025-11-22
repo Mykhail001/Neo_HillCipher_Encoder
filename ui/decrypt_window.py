@@ -2,8 +2,9 @@
 Вікно розшифрування
 """
 
+import os
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import numpy as np
 from config import *
 from cipher.hill_cipher import (
@@ -12,7 +13,10 @@ from cipher.hill_cipher import (
     hill_decrypt_standard,
     hill_decrypt_modified
 )
-from utils.file_utils import load_text_file, load_matrix_file, save_file
+from utils.file_utils import (
+    load_text_file, load_matrix_file, save_file,
+    remove_padding, base64_to_file, DEFAULT_PADDING_SYMBOL
+)
 from data.templates import ALPHABET_UKR
 
 
@@ -27,11 +31,58 @@ class DecryptWindow:
         self.alphabet_name = "Український"
         self.loaded_matrix_dec = None
         self.substitution_mapping_dec = []
+        self.selected_file_path = None
 
         self.create_widgets()
 
     def create_widgets(self):
         """Створення всіх віджетів"""
+        # ==================== РЕЖИМ ВВОДУ (ТЕКСТ/ФАЙЛ) ====================
+        input_mode_frame = tk.Frame(self.window, bg=BG_COLOR)
+        input_mode_frame.pack(pady=10)
+
+        tk.Label(
+            input_mode_frame,
+            text="Режим вводу:",
+            bg=BG_COLOR,
+            fg=FG_COLOR,
+            font=FONT_BOLD
+        ).pack(side="left", padx=5)
+
+        self.input_mode = tk.IntVar(value=0)  # 0 = текст, 1 = файл
+
+        tk.Radiobutton(
+            input_mode_frame,
+            text="Текст",
+            variable=self.input_mode,
+            value=0,
+            indicatoron=0,
+            width=15,
+            height=2,
+            bg=CELL_BG,
+            fg="black",
+            selectcolor=ACCENT_COLOR,
+            activebackground=BUTTON_BG,
+            relief="raised",
+            command=self.toggle_input_mode
+        ).pack(side="left", padx=5)
+
+        tk.Radiobutton(
+            input_mode_frame,
+            text="Файл",
+            variable=self.input_mode,
+            value=1,
+            indicatoron=0,
+            width=15,
+            height=2,
+            bg=CELL_BG,
+            fg="black",
+            selectcolor=ACCENT_COLOR,
+            activebackground=BUTTON_BG,
+            relief="raised",
+            command=self.toggle_input_mode
+        ).pack(side="left", padx=5)
+
         # ==================== АЛФАВІТ ====================
         top_frame = tk.Frame(self.window, bg=BG_COLOR)
         top_frame.pack(pady=5)
@@ -142,9 +193,11 @@ class DecryptWindow:
             font=FONT_ITALIC
         ).pack(side="left", padx=2)
 
-        # ==================== ЗАШИФРОВАНИЙ ТЕКСТ ====================
+        # ==================== ТЕКСТ (для режиму тексту) ====================
+        self.text_frame = tk.Frame(self.window, bg=BG_COLOR)
+
         tk.Label(
-            self.window,
+            self.text_frame,
             text="Зашифрований текст:",
             bg=BG_COLOR,
             fg=FG_COLOR,
@@ -152,7 +205,7 @@ class DecryptWindow:
         ).pack(pady=5)
 
         self.ciphertext_text = tk.Text(
-            self.window,
+            self.text_frame,
             width=60,
             height=10,
             state="disabled"
@@ -160,10 +213,80 @@ class DecryptWindow:
         self.ciphertext_text.pack(pady=5)
 
         tk.Button(
-            self.window,
+            self.text_frame,
             text="Відкрити текстовий файл",
             command=self.load_text
         ).pack(pady=5)
+
+        self.text_frame.pack(pady=5)
+
+        # ==================== ФАЙЛ (для режиму файлу) ====================
+        self.file_frame = tk.Frame(self.window, bg=BG_COLOR)
+
+        tk.Label(
+            self.file_frame,
+            text="Зашифрований файл:",
+            bg=BG_COLOR,
+            fg=FG_COLOR,
+            font=FONT_BOLD
+        ).pack(pady=5)
+
+        file_select_frame = tk.Frame(self.file_frame, bg=BG_COLOR)
+        file_select_frame.pack(pady=5)
+
+        self.file_path_var = tk.StringVar(value="Файл не обрано")
+        tk.Label(
+            file_select_frame,
+            textvariable=self.file_path_var,
+            bg=CELL_BG,
+            fg="black",
+            font=FONT_NORMAL,
+            width=50,
+            anchor="w",
+            padx=5
+        ).pack(side="left", padx=5)
+
+        tk.Button(
+            file_select_frame,
+            text="Обрати файл",
+            command=self.select_file,
+            bg=CELL_BG,
+            fg="black"
+        ).pack(side="left", padx=5)
+
+        # Інформація про файл
+        self.file_info_var = tk.StringVar(value="")
+        tk.Label(
+            self.file_frame,
+            textvariable=self.file_info_var,
+            bg=BG_COLOR,
+            fg=FG_COLOR,
+            font=FONT_ITALIC
+        ).pack(pady=5)
+
+        # Символ padding
+        padding_frame = tk.Frame(self.file_frame, bg=BG_COLOR)
+        padding_frame.pack(pady=5)
+
+        tk.Label(
+            padding_frame,
+            text="Символ padding:",
+            bg=BG_COLOR,
+            fg=FG_COLOR,
+            font=FONT_BOLD
+        ).pack(side="left", padx=5)
+
+        self.padding_entry = tk.Entry(padding_frame, width=5, bg=CELL_BG, font=("Arial", 11))
+        self.padding_entry.insert(0, DEFAULT_PADDING_SYMBOL)
+        self.padding_entry.pack(side="left", padx=5)
+
+        tk.Label(
+            padding_frame,
+            text="(той самий, що при шифруванні)",
+            bg=BG_COLOR,
+            fg=FG_COLOR,
+            font=FONT_ITALIC
+        ).pack(side="left", padx=5)
 
         # ==================== МАТРИЦЯ ====================
         matrix_label_frame = tk.Frame(self.window, bg=BG_COLOR)
@@ -193,16 +316,49 @@ class DecryptWindow:
         ).pack(side="left", padx=5)
 
         # ==================== КНОПКА РОЗШИФРУВАННЯ ====================
-        tk.Button(
+        self.decrypt_btn = tk.Button(
             self.window,
-            text="Розшифрувати",
+            text="Розшифрувати текст",
             command=self.decrypt,
             font=FONT_BOLD,
             bg=BUTTON_BG
-        ).pack(pady=10)
+        )
+        self.decrypt_btn.pack(pady=10)
 
         # Початкова видимість підстановки
         self.toggle_subst_frame()
+        self.toggle_input_mode()
+
+    def toggle_input_mode(self):
+        """Перемикання між режимом тексту та файлу"""
+        if self.input_mode.get() == 0:
+            # Режим тексту
+            self.file_frame.pack_forget()
+            self.text_frame.pack(pady=5)
+            self.decrypt_btn.config(text="Розшифрувати текст")
+        else:
+            # Режим файлу
+            self.text_frame.pack_forget()
+            self.file_frame.pack(pady=5)
+            self.decrypt_btn.config(text="Розшифрувати файл")
+
+    def select_file(self):
+        """Вибір файлу для розшифрування"""
+        fpath = filedialog.askopenfilename(
+            title="Виберіть зашифрований файл",
+            filetypes=[
+                ("Encrypted Files", "*.encrypted"),
+                ("All Files", "*.*")
+            ]
+        )
+        if fpath:
+            self.selected_file_path = fpath
+            filename = os.path.basename(fpath)
+            self.file_path_var.set(filename)
+
+            # Показуємо інформацію про файл
+            file_size = os.path.getsize(fpath)
+            self.file_info_var.set(f"Розмір: {file_size} байт")
 
     def create_alphabet_cell(self, parent, alphabet_name, alphabet_length):
         """Створення інформаційної клітинки для алфавіту"""
@@ -301,6 +457,13 @@ class DecryptWindow:
             )
 
     def decrypt(self):
+        """Розшифрувати текст або файл"""
+        if self.input_mode.get() == 0:
+            self.decrypt_text()
+        else:
+            self.decrypt_file()
+
+    def decrypt_text(self):
         """Розшифрувати текст"""
         # ==================== ВАЛІДАЦІЯ ====================
         if not self.alphabet:
@@ -324,11 +487,13 @@ class DecryptWindow:
             # ==================== РОЗШИФРУВАННЯ ====================
             if self.decryption_mode.get() == 0:
                 # Стандартне розшифрування
-                dec_txt = hill_decrypt_standard(
-                    txt,
+                ciphertext_numbers = text_to_numbers(txt, self.alphabet)
+                dec_numbers = hill_decrypt_standard(
+                    ciphertext_numbers,
                     self.loaded_matrix_dec,
                     self.alphabet
                 )
+                dec_txt = numbers_to_text(dec_numbers, self.alphabet)
             else:
                 # Модифіковане розшифрування з підстановкою
                 if not self.substitution_mapping_dec:
@@ -385,6 +550,131 @@ class DecryptWindow:
             messagebox.showerror(
                 "Помилка розшифрування",
                 f"Не вдалося розшифрувати текст:\n{str(ve)}\n\nПеревірте правильність матриці та алфавіту."
+            )
+        except Exception as e:
+            messagebox.showerror(
+                "Помилка",
+                f"Виникла несподівана помилка:\n{str(e)}"
+            )
+
+    def decrypt_file(self):
+        """Розшифрувати файл"""
+        # ==================== ВАЛІДАЦІЯ ====================
+        if not self.alphabet:
+            messagebox.showerror("Помилка", "Алфавіт не завантажено!")
+            return
+
+        if self.loaded_matrix_dec is None:
+            messagebox.showerror("Помилка", "Завантажте ключову матрицю!")
+            return
+
+        if not self.selected_file_path:
+            messagebox.showerror("Помилка", "Оберіть зашифрований файл!")
+            return
+
+        # Отримуємо символ padding
+        padding_symbol = self.padding_entry.get()
+        if not padding_symbol:
+            messagebox.showerror("Помилка", "Введіть символ padding!")
+            return
+        if len(padding_symbol) != 1:
+            messagebox.showerror("Помилка", "Символ padding має бути одним символом!")
+            return
+
+        try:
+            # 1. Читаємо зашифрований файл
+            with open(self.selected_file_path, "r", encoding="utf-8") as f:
+                encrypted_text = f.read()
+
+            encrypted_length = len(encrypted_text)
+
+            # 2. Розшифровуємо
+            if self.decryption_mode.get() == 0:
+                # Стандартне розшифрування
+                ciphertext_numbers = text_to_numbers(encrypted_text, self.alphabet)
+                dec_numbers = hill_decrypt_standard(
+                    ciphertext_numbers,
+                    self.loaded_matrix_dec,
+                    self.alphabet
+                )
+                decrypted_text = numbers_to_text(dec_numbers, self.alphabet)
+            else:
+                # Модифіковане розшифрування з підстановкою
+                if not self.substitution_mapping_dec:
+                    messagebox.showerror("Помилка", "Підстановку не вибрано!")
+                    return
+
+                if len(self.substitution_mapping_dec) != len(self.alphabet):
+                    messagebox.showerror(
+                        "Помилка",
+                        f"Розмір підстановки ({len(self.substitution_mapping_dec)}) != розмір алфавіту ({len(self.alphabet)})."
+                    )
+                    return
+
+                # Отримати довжину шуму
+                noise_str = self.noise_length_entry.get().strip()
+                noise_length = int(noise_str) if noise_str else 0
+
+                if noise_length < 0:
+                    messagebox.showerror("Помилка", "Довжина шуму має бути >= 0!")
+                    return
+
+                if noise_length >= len(self.loaded_matrix_dec):
+                    messagebox.showerror(
+                        "Помилка",
+                        f"Довжина шуму ({noise_length}) має бути менше розміру матриці ({len(self.loaded_matrix_dec)})!"
+                    )
+                    return
+
+                decrypted_text = hill_decrypt_modified(
+                    encrypted_text,
+                    self.loaded_matrix_dec,
+                    self.alphabet,
+                    self.substitution_mapping_dec,
+                    noise_length
+                )
+
+            # 3. Видаляємо padding
+            clean_text, padding_removed = remove_padding(decrypted_text, padding_symbol)
+
+            # 4. Конвертуємо Base64 назад у файл
+            # Вибираємо папку для збереження
+            output_dir = filedialog.askdirectory(
+                title="Виберіть папку для збереження відновленого файлу"
+            )
+
+            if not output_dir:
+                return
+
+            base_name = os.path.splitext(os.path.basename(self.selected_file_path))[0]
+            # Видаляємо .encrypted з назви якщо є
+            if base_name.endswith('.encrypted'):
+                base_name = base_name[:-10]
+
+            success, result = base64_to_file(clean_text, output_dir, base_name)
+
+            if success:
+                restored_size = os.path.getsize(result)
+                messagebox.showinfo(
+                    "Успіх",
+                    f"Файл розшифровано та відновлено успішно!\n\n"
+                    f"Зашифрований файл: {os.path.basename(self.selected_file_path)}\n"
+                    f"Довжина зашифрованого: {encrypted_length} символів\n\n"
+                    f"Видалено padding '{padding_symbol}': {padding_removed} символів\n"
+                    f"Base64 довжина: {len(clean_text)} символів\n\n"
+                    f"Відновлено: {os.path.basename(result)}\n"
+                    f"Розмір відновленого: {restored_size} байт"
+                )
+            else:
+                messagebox.showerror(
+                    "Помилка",
+                    f"Не вдалося відновити файл з Base64:\n{result}"
+                )
+
+        except ValueError as ve:
+            messagebox.showerror(
+                "Помилка розшифрування",
+                f"Не вдалося розшифрувати файл:\n{str(ve)}\n\nПеревірте правильність матриці та алфавіту."
             )
         except Exception as e:
             messagebox.showerror(
