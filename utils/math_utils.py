@@ -39,48 +39,113 @@ def mod_inverse(a, m):
     return t + m if t < 0 else t
 
 
+def determinant_int(matrix):
+    """
+    Обчислення визначника матриці з використанням ТІЛЬКИ цілочисельної арифметики.
+    Використовує рекурсивне розкладання по першому рядку.
+    Це критично для великих матриць (9x9+) де float втрачає точність.
+    """
+    matrix = [[int(x) for x in row] for row in matrix]
+    n = len(matrix)
+
+    if n == 1:
+        return matrix[0][0]
+
+    if n == 2:
+        return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
+
+    det = 0
+    for j in range(n):
+        # Створюємо мінор (видаляємо рядок 0 і стовпець j)
+        minor = []
+        for i in range(1, n):
+            row = []
+            for k in range(n):
+                if k != j:
+                    row.append(matrix[i][k])
+            minor.append(row)
+
+        # Знак: (-1)^(0+j)
+        sign = 1 if j % 2 == 0 else -1
+        det += sign * matrix[0][j] * determinant_int(minor)
+
+    return det
+
+
 def determinant(matrix):
-    """Обчислення визначника матриці"""
-    return round(np.linalg.det(np.array(matrix)))
+    """Обчислення визначника матриці (цілочисельна версія)"""
+    return determinant_int(matrix)
+
+
+def matrix_minor_int(matrix, i, j):
+    """
+    Обчислення мінора матриці (визначник без рядка i та стовпця j)
+    з використанням цілочисельної арифметики.
+    """
+    matrix = [[int(x) for x in row] for row in matrix]
+    n = len(matrix)
+
+    # Створюємо підматрицю без рядка i та стовпця j
+    minor = []
+    for row_idx in range(n):
+        if row_idx == i:
+            continue
+        row = []
+        for col_idx in range(n):
+            if col_idx == j:
+                continue
+            row.append(matrix[row_idx][col_idx])
+        minor.append(row)
+
+    return determinant_int(minor)
 
 
 def matrix_minor(matrix, i, j):
     """Обчислення мінора матриці"""
-    minor = np.delete(np.delete(matrix, i, axis=0), j, axis=1)
-    return int(round(np.linalg.det(minor)))
+    return matrix_minor_int(matrix, i, j)
 
 
 def matrix_mod_inverse(matrix, mod):
-    """Обчислення оберненої матриці по модулю"""
-    n = matrix.shape[0]
+    """
+    Обчислення оберненої матриці по модулю.
+    Використовує цілочисельну арифметику для уникнення помилок округлення.
+    """
+    # Конвертуємо в список списків для цілочисельних операцій
+    if isinstance(matrix, np.ndarray):
+        matrix_list = [[int(x) for x in row] for row in matrix.tolist()]
+    else:
+        matrix_list = [[int(x) for x in row] for row in matrix]
 
-    det = int(round(np.linalg.det(matrix)))
+    n = len(matrix_list)
+
+    # Обчислюємо визначник цілочисельно
+    det = determinant_int(matrix_list)
     det_mod = det % mod
 
     if det_mod == 0:
         raise ValueError(f"Детермінант {det} не має оберненого за модулем {mod}")
 
     # Знаходимо обернений елемент детермінанта
-    inv_det = None
-    for x in range(1, mod):
-        if (det_mod * x) % mod == 1:
-            inv_det = x
-            break
-
-    if inv_det is None:
+    try:
+        inv_det = mod_inverse(det_mod, mod)
+    except ValueError:
         raise ValueError(f"Детермінант {det_mod} не має оберненого за модулем {mod}")
 
-    # Обчислюємо матрицю кофакторів
-    cofactors = np.zeros((n, n), dtype=np.int64)
+    # Обчислюємо матрицю кофакторів (цілочисельно)
+    cofactors = [[0] * n for _ in range(n)]
     for i in range(n):
         for j in range(n):
-            minor_det = matrix_minor(matrix, i, j)
-            sign = (-1) ** (i + j)
-            cofactors[i, j] = (sign * minor_det) % mod
+            minor_det = matrix_minor_int(matrix_list, i, j)
+            sign = 1 if (i + j) % 2 == 0 else -1
+            cofactors[i][j] = (sign * minor_det) % mod
 
-    # Транспонуємо та множимо на обернений детермінант
-    adjugate = cofactors.T
-    inv_matrix = (inv_det * adjugate) % mod
-    inv_matrix = np.mod(inv_matrix, mod).astype(np.int64)
+    # Транспонуємо (adjugate = cofactors^T)
+    adjugate = [[cofactors[j][i] for j in range(n)] for i in range(n)]
+
+    # Множимо на обернений детермінант і беремо по модулю
+    inv_matrix = np.zeros((n, n), dtype=np.int64)
+    for i in range(n):
+        for j in range(n):
+            inv_matrix[i, j] = (inv_det * adjugate[i][j]) % mod
 
     return inv_matrix
