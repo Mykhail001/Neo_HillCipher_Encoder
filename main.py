@@ -3,8 +3,6 @@ Hill Cipher MultiTool - Головний файл запуску
 """
 
 from ui.main_window import MainWindow
-
-
 def main():
     """Головна функція програми"""
     app = MainWindow()
