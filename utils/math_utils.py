@@ -39,22 +39,76 @@ def mod_inverse(a, m):
     return t + m if t < 0 else t
 
 
+def determinant_int(matrix):
+    """
+    Обчислення визначника матриці з використанням ТІЛЬКИ цілих чисел.
+    Рекурсивне розкладання за кофакторами - без float, без округлення, точний результат.
+    """
+    # Convert to list of lists if numpy array
+    if hasattr(matrix, 'tolist'):
+        matrix = matrix.tolist()
+
+    n = len(matrix)
+
+    # Base cases
+    if n == 1:
+        return int(matrix[0][0])
+
+    if n == 2:
+        return int(matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0])
+
+    # Recursive cofactor expansion along first row
+    det = 0
+    for j in range(n):
+        # Build minor matrix (exclude row 0 and column j)
+        minor = []
+        for row in range(1, n):
+            minor_row = []
+            for col in range(n):
+                if col != j:
+                    minor_row.append(matrix[row][col])
+            minor.append(minor_row)
+
+        # Cofactor sign: (-1)^(0+j)
+        sign = 1 if j % 2 == 0 else -1
+
+        # Recursive call for minor determinant
+        det += sign * int(matrix[0][j]) * determinant_int(minor)
+
+    return det
+
+
 def determinant(matrix):
     """Обчислення визначника матриці"""
-    return round(np.linalg.det(np.array(matrix)))
+    return determinant_int(matrix)
 
 
 def matrix_minor(matrix, i, j):
-    """Обчислення мінора матриці"""
-    minor = np.delete(np.delete(matrix, i, axis=0), j, axis=1)
-    return int(round(np.linalg.det(minor)))
+    """Обчислення мінора матриці з використанням цілочисельної арифметики"""
+    # Convert to list of lists if numpy array
+    if hasattr(matrix, 'tolist'):
+        matrix = matrix.tolist()
+
+    n = len(matrix)
+    # Build minor matrix (exclude row i and column j)
+    minor = []
+    for row in range(n):
+        if row == i:
+            continue
+        minor_row = []
+        for col in range(n):
+            if col != j:
+                minor_row.append(matrix[row][col])
+        minor.append(minor_row)
+
+    return determinant_int(minor)
 
 
 def matrix_mod_inverse(matrix, mod):
-    """Обчислення оберненої матриці по модулю"""
+    """Обчислення оберненої матриці по модулю з цілочисельною арифметикою"""
     n = matrix.shape[0]
 
-    det = int(round(np.linalg.det(matrix)))
+    det = determinant_int(matrix)
     det_mod = det % mod
 
     if det_mod == 0:
