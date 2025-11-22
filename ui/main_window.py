@@ -52,7 +52,7 @@ class MainWindow:
 
         tk.Button(
             self.root,
-            text="Encrypt",
+            text="Зашифрувати",
             command=self.open_encrypt_window,
             font=FONT_BOLD,
             bg=BUTTON_BG,
@@ -63,7 +63,7 @@ class MainWindow:
 
         tk.Button(
             self.root,
-            text="Decrypt",
+            text="Розшифрувати",
             command=self.open_decrypt_window,
             font=FONT_BOLD,
             bg=BUTTON_BG,

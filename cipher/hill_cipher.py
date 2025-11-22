@@ -11,7 +11,6 @@ def text_to_numbers(text, alphabet):
     """Конвертує текст в числа згідно з алфавітом"""
     if not isinstance(text, str):
         raise ValueError("Очікується текст, але отримано інший тип.")
-    text = text.upper()
     return [alphabet.index(char) for char in text if char in alphabet]
 
 
