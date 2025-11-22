@@ -150,6 +150,9 @@ def circulant_inverse(matrix, mod, show_progress=True):
     # Обчислюємо тільки перший стовпець кофакторів
     first_col_cofactors = circulant_cofactor_column(matrix_list, 0, show_progress=show_log)
 
+    # Застосовуємо mod до кофакторів відразу для уникнення переповнення
+    first_col_cofactors = [c % mod for c in first_col_cofactors]
+
     # Логуємо оптимізацію
     _circulant_matrix_log.append({
         'size': n,
@@ -157,22 +160,18 @@ def circulant_inverse(matrix, mod, show_progress=True):
         'optimization': 'single_column_cofactors'
     })
 
-    # Будуємо повну матрицю кофакторів через циклічні зсуви
-    # Для циркулянтної матриці: cofactor[i][j] = shift(first_col, j)[i]
-    cofactors = np.zeros((n, n), dtype=np.int64)
-
-    for j in range(n):
-        for i in range(n):
-            # Зсув: елемент cofactors[i][j] = first_col[(i - j) % n]
-            cofactors[i, j] = first_col_cofactors[(i - j) % n]
-
     if show_log:
         print(f"  Circulant matrix inversion complete!")
 
-    # Транспонуємо та множимо на обернений детермінант
-    adjugate = cofactors.T
-    inv_matrix = (inv_det * adjugate) % mod
-    inv_matrix = np.mod(inv_matrix, mod).astype(np.int64)
+    # Будуємо обернену матрицю: транспонуємо та множимо на обернений детермінант
+    # Для циркулянтної матриці: cofactor[i][j] = first_col[(i - j) % n]
+    # adjugate[i][j] = cofactor[j][i] = first_col[(j - i) % n]
+    inv_matrix = np.zeros((n, n), dtype=np.int64)
+
+    for i in range(n):
+        for j in range(n):
+            cofactor_val = first_col_cofactors[(j - i) % n]
+            inv_matrix[i, j] = (inv_det * cofactor_val) % mod
 
     return inv_matrix
 
@@ -360,14 +359,15 @@ def matrix_mod_inverse(matrix, mod, show_progress=True):
     if show_log:
         print(f"  Step 3/3: Computing {n}x{n} cofactor matrix ({n*n} minors)...")
 
-    # Обчислюємо матрицю кофакторів
-    cofactors = np.zeros((n, n), dtype=np.int64)
+    # Обчислюємо матрицю кофакторів (використовуємо Python list для великих чисел)
+    cofactors = [[0] * n for _ in range(n)]
     total_minors = n * n
     for i in range(n):
         for j in range(n):
             minor_det = matrix_minor(matrix, i, j)
-            sign = (-1) ** (i + j)
-            cofactors[i, j] = (sign * minor_det) % mod
+            sign = 1 if (i + j) % 2 == 0 else -1
+            # Застосовуємо mod відразу для уникнення переповнення
+            cofactors[i][j] = (sign * minor_det) % mod
 
         # Progress update per row
         if show_log:
@@ -377,9 +377,11 @@ def matrix_mod_inverse(matrix, mod, show_progress=True):
     if show_log:
         print(f"  Matrix inversion complete!")
 
-    # Транспонуємо та множимо на обернений детермінант
-    adjugate = cofactors.T
-    inv_matrix = (inv_det * adjugate) % mod
-    inv_matrix = np.mod(inv_matrix, mod).astype(np.int64)
+    # Транспонуємо (adjugate = cofactors^T) та множимо на обернений детермінант
+    inv_matrix = np.zeros((n, n), dtype=np.int64)
+    for i in range(n):
+        for j in range(n):
+            # Транспонування: inv_matrix[i][j] = cofactors[j][i]
+            inv_matrix[i, j] = (inv_det * cofactors[j][i]) % mod
 
     return inv_matrix
