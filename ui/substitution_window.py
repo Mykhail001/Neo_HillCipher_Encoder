@@ -134,6 +134,23 @@ class SubstitutionWindow:
             fg=FG_COLOR
         ).pack(pady=10)
 
+    def format_numbers(self, numbers, size):
+        """Форматування чисел з динамічною кількістю на рядок"""
+        if not numbers:
+            return ""
+
+        # Визначаємо максимальну кількість цифр для чисел
+        max_digits = len(str(size - 1)) if size > 0 else 1
+        # Ширина текстового поля - 70 символів
+        # Кожне число займає max_digits + 1 (пробіл)
+        numbers_per_line = max(1, 70 // (max_digits + 1))
+
+        formatted = []
+        for i in range(0, len(numbers), numbers_per_line):
+            formatted.append(" ".join(map(str, numbers[i:i+numbers_per_line])))
+
+        return "\n".join(formatted)
+
     def parse_numbers(self):
         """Парсинг чисел з текстового поля"""
         text = self.substitution_text.get("1.0", "end-1c").strip()
@@ -207,24 +224,20 @@ class SubstitutionWindow:
         # Генерація унікальних чисел від 0 до size-1
         numbers = generate_random_substitution(size)
 
-        # Форматуємо по 10 чисел на рядок для зручності
-        formatted = []
-        for i in range(0, len(numbers), 10):
-            formatted.append(" ".join(map(str, numbers[i:i+10])))
-
+        # Форматуємо з динамічною кількістю на рядок
         self.substitution_text.delete("1.0", tk.END)
-        self.substitution_text.insert("1.0", "\n".join(formatted))
+        self.substitution_text.insert("1.0", self.format_numbers(numbers, size))
         self.update_info()
 
     def open_substitution_templates(self):
         """Відкрити шаблони підстановки"""
         temp_win = tk.Toplevel(self.window)
         temp_win.title("Шаблони підстановки")
-        temp_win.geometry("250x120")
+        temp_win.geometry("250x150")
         temp_win.configure(bg=BG_COLOR)
 
         listbox = tk.Listbox(temp_win, selectmode="single", bg=CELL_BG)
-        templates = ["Зміщений український", "Зміщений англійський"]
+        templates = ["Зміщений український", "Зміщений англійський", "Зміщений Base64"]
         for tmpl in templates:
             listbox.insert(tk.END, tmpl)
         listbox.pack(fill="both", expand=True, padx=10, pady=10)
@@ -233,7 +246,12 @@ class SubstitutionWindow:
             sel = listbox.curselection()
             if sel:
                 template_name = listbox.get(sel[0])
-                size = 33 if template_name == "Зміщений український" else 26
+                if template_name == "Зміщений український":
+                    size = 33
+                elif template_name == "Зміщений англійський":
+                    size = 26
+                else:  # Зміщений Base64
+                    size = 65
 
                 self.size_entry.delete(0, tk.END)
                 self.size_entry.insert(0, str(size))
@@ -241,13 +259,9 @@ class SubstitutionWindow:
                 # Зміщення на 1: [1, 2, 3, ..., size-1, 0]
                 numbers = list(range(1, size)) + [0]
 
-                # Форматуємо по 10 чисел на рядок
-                formatted = []
-                for i in range(0, len(numbers), 10):
-                    formatted.append(" ".join(map(str, numbers[i:i+10])))
-
+                # Форматуємо з динамічною кількістю на рядок
                 self.substitution_text.delete("1.0", tk.END)
-                self.substitution_text.insert("1.0", "\n".join(formatted))
+                self.substitution_text.insert("1.0", self.format_numbers(numbers, size))
                 self.update_info()
                 temp_win.destroy()
 
@@ -282,16 +296,13 @@ class SubstitutionWindow:
 
             substitution = string_to_substitution(data)
 
+            size = len(substitution)
             self.size_entry.delete(0, tk.END)
-            self.size_entry.insert(0, str(len(substitution)))
+            self.size_entry.insert(0, str(size))
 
-            # Форматуємо по 10 чисел на рядок
-            formatted = []
-            for i in range(0, len(substitution), 10):
-                formatted.append(" ".join(map(str, substitution[i:i+10])))
-
+            # Форматуємо з динамічною кількістю на рядок
             self.substitution_text.delete("1.0", tk.END)
-            self.substitution_text.insert("1.0", "\n".join(formatted))
+            self.substitution_text.insert("1.0", self.format_numbers(substitution, size))
             self.update_info()
 
             messagebox.showinfo("Успіх", f"Підстановку завантажено!\nРозмір: {len(substitution)}")
