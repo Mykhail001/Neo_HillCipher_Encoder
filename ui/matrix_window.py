@@ -74,8 +74,8 @@ class MatrixWindow:
             command=self.show_standard,
             width=25,
             height=2,
-            bg=CELL_BG,
-            fg="black",
+            bg=BUTTON_BG,
+            fg=FG_COLOR,
             relief="sunken"
         )
         self.btn_mode1.pack(side="left", padx=5)
@@ -86,8 +86,8 @@ class MatrixWindow:
             command=self.show_circular,
             width=25,
             height=2,
-            bg=CELL_BG,
-            fg="black",
+            bg=BUTTON_BG,
+            fg=FG_COLOR,
             relief="raised"
         )
         self.btn_mode2.pack(side="left", padx=5)

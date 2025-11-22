@@ -324,7 +324,8 @@ class DecryptWindow:
             text="Розшифрувати текст",
             command=self.decrypt,
             font=FONT_BOLD,
-            bg=BUTTON_BG
+            bg=BUTTON_BG,
+            fg=FG_COLOR
         )
         self.decrypt_btn.pack(pady=10)
 
