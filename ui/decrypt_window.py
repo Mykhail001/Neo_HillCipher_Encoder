@@ -106,24 +106,14 @@ class DecryptWindow:
         ).pack(side="left", padx=2)
 
         # Клітинка для назви підстановки
-        subst_cell = tk.Frame(
-            self.subst_frame,
-            width=200,
-            height=30,
-            bd=1,
-            relief="solid",
-            bg=CELL_BG
-        )
-        subst_cell.pack(side="left", padx=2)
-        subst_cell.pack_propagate(False)
-
         self.subst_name_var = tk.StringVar(value="Відсутня")
         tk.Label(
-            subst_cell,
+            self.subst_frame,
             textvariable=self.subst_name_var,
-            bg=CELL_BG,
+            bg=BG_COLOR,
+            fg=FG_COLOR,
             font=FONT_BOLD
-        ).pack()
+        ).pack(side="left", padx=2)
 
         tk.Button(
             self.subst_frame,
