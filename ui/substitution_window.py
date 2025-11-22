@@ -171,9 +171,30 @@ class SubstitutionWindow:
 
         return numbers
 
+    def get_non_numeric_parts(self):
+        """Отримати список нечислових частин з текстового поля"""
+        text = self.substitution_text.get("1.0", "end-1c").strip()
+        if not text:
+            return []
+
+        # Замінюємо коми та інші роздільники на пробіли
+        text = text.replace(',', ' ').replace(';', ' ').replace('\n', ' ')
+
+        non_numeric = []
+        for part in text.split():
+            part = part.strip()
+            if part:
+                try:
+                    int(part)
+                except ValueError:
+                    non_numeric.append(part)
+
+        return non_numeric
+
     def update_info(self, event=None):
         """Оновлення інформації про підстановку"""
         numbers = self.parse_numbers()
+        non_numeric = self.get_non_numeric_parts()
 
         max_val = max(numbers) if numbers else 0
         size = int(self.size_entry.get()) if self.size_entry.get().strip() else 0
@@ -183,6 +204,11 @@ class SubstitutionWindow:
             info_text += f" | Макс. значення: {max_val}"
             if size > 0 and max_val >= size:
                 info_text += f" ⚠️ (має бути < {size})"
+
+        if non_numeric:
+            info_text += f" | ⚠️ Нечислові значення: {', '.join(non_numeric[:5])}"
+            if len(non_numeric) > 5:
+                info_text += f"... (+{len(non_numeric) - 5})"
 
         self.info_label.config(text=info_text)
 
@@ -313,6 +339,17 @@ class SubstitutionWindow:
     def save_substitution(self):
         """Зберегти підстановку"""
         numbers = self.parse_numbers()
+        non_numeric = self.get_non_numeric_parts()
+
+        # Перевірка на нечислові значення
+        if non_numeric:
+            messagebox.showerror(
+                "Помилка",
+                f"Підстановка має містити лише числа!\n"
+                f"Знайдено нечислові значення: {', '.join(non_numeric[:10])}"
+                + (f"... (+{len(non_numeric) - 10})" if len(non_numeric) > 10 else "")
+            )
+            return
 
         if not numbers:
             messagebox.showerror("Помилка", "Підстановка порожня.")
