@@ -68,7 +68,7 @@ def circulant_determinant(matrix):
     return determinant_int(matrix)
 
 
-def circulant_cofactor_column(matrix, col_idx=0):
+def circulant_cofactor_column(matrix, col_idx=0, show_progress=False):
     """
     Обчислює один стовпець кофакторів циркулянтної матриці.
     Оскільки матриця циркулянтна, інші стовпці можна отримати зсувом.
@@ -76,6 +76,7 @@ def circulant_cofactor_column(matrix, col_idx=0):
     Args:
         matrix: циркулянтна матриця
         col_idx: індекс стовпця для обчислення (за замовчуванням 0)
+        show_progress: якщо True, виводить прогрес
 
     Returns:
         list: стовпець кофакторів
@@ -90,11 +91,13 @@ def circulant_cofactor_column(matrix, col_idx=0):
         minor_det = matrix_minor(matrix, i, col_idx)
         sign = (-1) ** (i + col_idx)
         cofactors.append(sign * minor_det)
+        if show_progress:
+            print(f"    Cofactor {i + 1}/{n}")
 
     return cofactors
 
 
-def circulant_inverse(matrix, mod):
+def circulant_inverse(matrix, mod, show_progress=True):
     """
     Обчислює обернену матрицю для циркулянтної матриці.
     Оптимізація: обчислюємо тільки перший стовпець кофакторів,
@@ -103,6 +106,7 @@ def circulant_inverse(matrix, mod):
     Args:
         matrix: циркулянтна матриця
         mod: модуль
+        show_progress: якщо True, виводить прогрес у консоль для великих матриць
 
     Returns:
         numpy array: обернена матриця за модулем
@@ -115,13 +119,20 @@ def circulant_inverse(matrix, mod):
         matrix_list = matrix
 
     n = len(matrix_list)
+    show_log = show_progress and n >= 8
+
+    if show_log:
+        print(f"  Step 1/3: Computing determinant...")
 
     # Обчислюємо визначник
-    det = determinant_int(matrix_list)
+    det = determinant_int(matrix_list, show_progress=show_log)
     det_mod = det % mod
 
     if det_mod == 0:
         raise ValueError(f"Детермінант {det} не має оберненого за модулем {mod}")
+
+    if show_log:
+        print(f"  Step 2/3: Determinant = {det} (mod {mod} = {det_mod})")
 
     # Знаходимо обернений елемент детермінанта
     inv_det = None
@@ -133,8 +144,11 @@ def circulant_inverse(matrix, mod):
     if inv_det is None:
         raise ValueError(f"Детермінант {det_mod} не має оберненого за модулем {mod}")
 
+    if show_log:
+        print(f"  Step 3/3: Computing {n} cofactors (circulant optimization: only 1 column)...")
+
     # Обчислюємо тільки перший стовпець кофакторів
-    first_col_cofactors = circulant_cofactor_column(matrix_list, 0)
+    first_col_cofactors = circulant_cofactor_column(matrix_list, 0, show_progress=show_log)
 
     # Логуємо оптимізацію
     _circulant_matrix_log.append({
@@ -151,6 +165,9 @@ def circulant_inverse(matrix, mod):
         for i in range(n):
             # Зсув: елемент cofactors[i][j] = first_col[(i - j) % n]
             cofactors[i, j] = first_col_cofactors[(i - j) % n]
+
+    if show_log:
+        print(f"  Circulant matrix inversion complete!")
 
     # Транспонуємо та множимо на обернений детермінант
     adjugate = cofactors.T
@@ -193,10 +210,17 @@ def mod_inverse(a, m):
     return t + m if t < 0 else t
 
 
-def determinant_int(matrix):
+def determinant_int(matrix, show_progress=False):
     """
     Обчислення визначника матриці з використанням ТІЛЬКИ цілих чисел.
-    Рекурсивне розкладання за кофакторами - без float, без округлення, точний результат.
+    Використовує алгоритм Барейса (fraction-free Gaussian elimination) - O(n³).
+
+    Args:
+        matrix: квадратна матриця (numpy array або list of lists)
+        show_progress: якщо True, виводить прогрес у консоль для великих матриць
+
+    Returns:
+        int: визначник матриці
     """
     # Convert to list of lists if numpy array
     if hasattr(matrix, 'tolist'):
@@ -211,25 +235,47 @@ def determinant_int(matrix):
     if n == 2:
         return int(matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0])
 
-    # Recursive cofactor expansion along first row
-    det = 0
-    for j in range(n):
-        # Build minor matrix (exclude row 0 and column j)
-        minor = []
-        for row in range(1, n):
-            minor_row = []
-            for col in range(n):
-                if col != j:
-                    minor_row.append(matrix[row][col])
-            minor.append(minor_row)
+    # Bareiss algorithm (fraction-free Gaussian elimination) - O(n³)
+    # Create a working copy with Python integers for exact arithmetic
+    M = [[int(matrix[i][j]) for j in range(n)] for i in range(n)]
 
-        # Cofactor sign: (-1)^(0+j)
-        sign = 1 if j % 2 == 0 else -1
+    sign = 1  # Track sign changes from row swaps
+    prev_pivot = 1  # Previous pivot for division
 
-        # Recursive call for minor determinant
-        det += sign * int(matrix[0][j]) * determinant_int(minor)
+    for k in range(n - 1):
+        # Progress logging for large matrices
+        if show_progress and n >= 8:
+            print(f"  Determinant calculation: step {k + 1}/{n - 1}")
 
-    return det
+        # Find pivot (non-zero element in column k)
+        pivot_row = None
+        for i in range(k, n):
+            if M[i][k] != 0:
+                pivot_row = i
+                break
+
+        if pivot_row is None:
+            # Column is all zeros - determinant is 0
+            return 0
+
+        # Swap rows if needed
+        if pivot_row != k:
+            M[k], M[pivot_row] = M[pivot_row], M[k]
+            sign = -sign
+
+        # Bareiss elimination
+        pivot = M[k][k]
+        for i in range(k + 1, n):
+            for j in range(k + 1, n):
+                # Bareiss formula: M[i][j] = (M[k][k] * M[i][j] - M[i][k] * M[k][j]) / prev_pivot
+                # This is guaranteed to divide exactly
+                M[i][j] = (pivot * M[i][j] - M[i][k] * M[k][j]) // prev_pivot
+            M[i][k] = 0  # Clear column below pivot
+
+        prev_pivot = pivot
+
+    # The determinant is the last diagonal element, adjusted for sign
+    return sign * M[n - 1][n - 1]
 
 
 def determinant(matrix):
@@ -258,30 +304,48 @@ def matrix_minor(matrix, i, j):
     return determinant_int(minor)
 
 
-def matrix_mod_inverse(matrix, mod):
+def matrix_mod_inverse(matrix, mod, show_progress=True):
     """
     Обчислення оберненої матриці по модулю з цілочисельною арифметикою.
     Автоматично визначає циркулянтні матриці та використовує оптимізований алгоритм.
+
+    Args:
+        matrix: квадратна матриця
+        mod: модуль
+        show_progress: якщо True, виводить прогрес у консоль для великих матриць
+
+    Returns:
+        numpy array: обернена матриця за модулем
     """
     global _circulant_matrix_log
 
     n = matrix.shape[0]
+    show_log = show_progress and n >= 8  # Show progress for matrices 8x8 and larger
 
     # Перевіряємо чи матриця циркулянтна
     if is_circulant_matrix(matrix):
+        if show_log:
+            print(f"[Optimization] Detected circulant {n}x{n} matrix - using fast algorithm")
         # Логуємо використання оптимізації (без виведення на екран)
         _circulant_matrix_log.append({
             'size': n,
             'type': 'circulant_detected',
             'optimization': 'using_circulant_inverse'
         })
-        return circulant_inverse(matrix, mod)
+        return circulant_inverse(matrix, mod, show_progress=show_progress)
 
-    det = determinant_int(matrix)
+    if show_log:
+        print(f"[Matrix Inversion] Computing {n}x{n} matrix inverse...")
+        print(f"  Step 1/3: Computing determinant...")
+
+    det = determinant_int(matrix, show_progress=show_log)
     det_mod = det % mod
 
     if det_mod == 0:
         raise ValueError(f"Детермінант {det} не має оберненого за модулем {mod}")
+
+    if show_log:
+        print(f"  Step 2/3: Determinant = {det} (mod {mod} = {det_mod})")
 
     # Знаходимо обернений елемент детермінанта
     inv_det = None
@@ -293,13 +357,25 @@ def matrix_mod_inverse(matrix, mod):
     if inv_det is None:
         raise ValueError(f"Детермінант {det_mod} не має оберненого за модулем {mod}")
 
+    if show_log:
+        print(f"  Step 3/3: Computing {n}x{n} cofactor matrix ({n*n} minors)...")
+
     # Обчислюємо матрицю кофакторів
     cofactors = np.zeros((n, n), dtype=np.int64)
+    total_minors = n * n
     for i in range(n):
         for j in range(n):
             minor_det = matrix_minor(matrix, i, j)
             sign = (-1) ** (i + j)
             cofactors[i, j] = (sign * minor_det) % mod
+
+        # Progress update per row
+        if show_log:
+            done = (i + 1) * n
+            print(f"    Cofactors: {done}/{total_minors} ({100*done//total_minors}%)")
+
+    if show_log:
+        print(f"  Matrix inversion complete!")
 
     # Транспонуємо та множимо на обернений детермінант
     adjugate = cofactors.T
