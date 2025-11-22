@@ -251,7 +251,7 @@ class SubstitutionWindow:
                 elif template_name == "Зміщений англійський":
                     size = 26
                 else:  # Зміщений Base64
-                    size = 65
+                    size = 67
 
                 self.size_entry.delete(0, tk.END)
                 self.size_entry.insert(0, str(size))
