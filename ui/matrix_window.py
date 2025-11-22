@@ -173,8 +173,7 @@ class MatrixWindow:
         params_frame = tk.Frame(self.circular_frame, bg=BG_COLOR)
         params_frame.pack(pady=10)
 
-        # Поля введення в 2 колонки
-        # Ліва колонка
+        # Поля введення в 1 колонку з вирівнюванням
         tk.Label(
             params_frame, text="Альфа:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
         ).grid(row=0, column=0, padx=5, pady=5, sticky="e")
@@ -188,29 +187,28 @@ class MatrixWindow:
         self.beta_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
         tk.Label(
-            params_frame, text="Розмір шуму:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
-        ).grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        self.noise_size_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
-        self.noise_size_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
-
-        # Права колонка
-        tk.Label(
             params_frame, text="Розмір алфавіту:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
-        ).grid(row=0, column=2, padx=(30, 5), pady=5, sticky="e")
+        ).grid(row=2, column=0, padx=5, pady=5, sticky="e")
         self.alphabet_size_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
-        self.alphabet_size_entry.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        self.alphabet_size_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
         tk.Label(
             params_frame, text="Приватний ключ:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
-        ).grid(row=1, column=2, padx=(30, 5), pady=5, sticky="e")
+        ).grid(row=3, column=0, padx=5, pady=5, sticky="e")
         self.private_key_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
-        self.private_key_entry.grid(row=1, column=3, padx=5, pady=5, sticky="w")
+        self.private_key_entry.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+
+        tk.Label(
+            params_frame, text="Розмір шуму:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        self.noise_size_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        self.noise_size_entry.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
         tk.Label(
             params_frame, text="Підпис:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
-        ).grid(row=2, column=2, padx=(30, 5), pady=5, sticky="e")
+        ).grid(row=5, column=0, padx=5, pady=5, sticky="e")
         self.signature_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
-        self.signature_entry.grid(row=2, column=3, padx=5, pady=5, sticky="w")
+        self.signature_entry.grid(row=5, column=1, padx=5, pady=5, sticky="w")
 
         # Секція без підпису
         no_sig_frame = tk.Frame(self.circular_frame, bg=BG_COLOR)
@@ -341,7 +339,7 @@ class MatrixWindow:
         """Відкрити вікно створення підпису"""
         sig_win = tk.Toplevel(self.circular_frame)
         sig_win.title("Створити підпис")
-        sig_win.geometry("600x400")
+        sig_win.geometry("400x500")
         sig_win.configure(bg=BG_COLOR)
 
         signature_var = tk.StringVar(value="")
@@ -351,15 +349,13 @@ class MatrixWindow:
         params_frame = tk.Frame(sig_win, bg=BG_COLOR)
         params_frame.pack(pady=10)
 
-        # Назва матриці (окремий рядок)
+        # Поля введення в 1 колонку з вирівнюванням
         tk.Label(
             params_frame, text="Назва матриці:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
         ).grid(row=0, column=0, padx=5, pady=5, sticky="e")
         filename_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL, textvariable=filename_var)
-        filename_entry.grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky="w")
+        filename_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
-        # Поля введення в 2 колонки
-        # Ліва колонка
         tk.Label(
             params_frame, text="Альфа:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
         ).grid(row=1, column=0, padx=5, pady=5, sticky="e")
@@ -367,23 +363,22 @@ class MatrixWindow:
         alpha_new.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
         tk.Label(
-            params_frame, text="Приватний ключ:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
-        ).grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        private_key_new = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
-        private_key_new.grid(row=2, column=1, padx=5, pady=5, sticky="w")
-
-        # Права колонка
-        tk.Label(
             params_frame, text="Розмір алфавіту:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
-        ).grid(row=1, column=2, padx=(30, 5), pady=5, sticky="e")
+        ).grid(row=2, column=0, padx=5, pady=5, sticky="e")
         alphabet_size_new = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
-        alphabet_size_new.grid(row=1, column=3, padx=5, pady=5, sticky="w")
+        alphabet_size_new.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+
+        tk.Label(
+            params_frame, text="Приватний ключ:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=3, column=0, padx=5, pady=5, sticky="e")
+        private_key_new = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        private_key_new.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
         tk.Label(
             params_frame, text="Розмір шуму:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
-        ).grid(row=2, column=2, padx=(30, 5), pady=5, sticky="e")
+        ).grid(row=4, column=0, padx=5, pady=5, sticky="e")
         noise_size_new = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
-        noise_size_new.grid(row=2, column=3, padx=5, pady=5, sticky="w")
+        noise_size_new.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
         signature_label = tk.Label(
             sig_win,
