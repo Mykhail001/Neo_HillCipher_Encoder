@@ -33,9 +33,11 @@ class BruteForceWindow:
         # Стан брутфорсу
         self.is_running = False
         self.is_paused = False
-        self.brute_thread = None
+        self.brute_threads = []
         self.attempts_count = 0
+        self.successful_attempts = 0  # Кількість успішних спроб (з оберненою матрицею)
         self.results = []  # Список знайдених результатів (accuracy, matrix, params, decrypted_text)
+        self.lock = threading.Lock()  # Для синхронізації потоків
 
         self.create_widgets()
 
@@ -46,11 +48,11 @@ class BruteForceWindow:
         main_container.pack(fill="both", expand=True, padx=10, pady=10)
 
         # ==================== ЛІВА ПАНЕЛЬ ====================
-        left_panel = tk.Frame(main_container, bg=BG_COLOR, width=400)
+        left_panel = tk.Frame(main_container, bg=BG_COLOR, width=450)
         left_panel.pack(side="left", fill="both", expand=True, padx=(0, 10))
         left_panel.pack_propagate(False)
 
-        # --- Заголовок лівої панелі ---
+        # --- Заголовок лівої панелі (центрований) ---
         tk.Label(
             left_panel,
             text="Налаштування брутфорсу",
@@ -59,9 +61,9 @@ class BruteForceWindow:
             font=("Arial", 14, "bold")
         ).pack(pady=10)
 
-        # --- Режим брутфорсу ---
+        # --- Режим брутфорсу (центрований) ---
         mode_frame = tk.Frame(left_panel, bg=BG_COLOR)
-        mode_frame.pack(pady=10, fill="x")
+        mode_frame.pack(pady=10)
 
         tk.Label(
             mode_frame,
@@ -105,9 +107,9 @@ class BruteForceWindow:
             command=self.toggle_modified_options
         ).pack(side="left", padx=5)
 
-        # --- Алфавіт ---
+        # --- Алфавіт (центрований) ---
         alphabet_frame = tk.Frame(left_panel, bg=BG_COLOR)
-        alphabet_frame.pack(pady=10, fill="x")
+        alphabet_frame.pack(pady=10)
 
         tk.Label(
             alphabet_frame,
@@ -134,9 +136,9 @@ class BruteForceWindow:
             fg="black"
         ).pack(side="left", padx=5)
 
-        # --- Розмір матриці ---
+        # --- Розмір матриці (центрований) ---
         matrix_size_frame = tk.Frame(left_panel, bg=BG_COLOR)
-        matrix_size_frame.pack(pady=10, fill="x")
+        matrix_size_frame.pack(pady=10)
 
         tk.Label(
             matrix_size_frame,
@@ -158,18 +160,18 @@ class BruteForceWindow:
 
         tk.Label(
             matrix_size_frame,
-            text="(2-4, більші розміри потребують багато часу)",
+            text="(2-4)",
             bg=BG_COLOR,
             fg=FG_COLOR,
             font=FONT_ITALIC
         ).pack(side="left", padx=5)
 
-        # --- Опції модифікованого режиму ---
+        # --- Опції модифікованого режиму (центровані) ---
         self.modified_options_frame = tk.Frame(left_panel, bg=BG_COLOR)
 
         tk.Label(
             self.modified_options_frame,
-            text="Максимальна довжина шуму:",
+            text="Макс. довжина шуму:",
             bg=BG_COLOR,
             fg=FG_COLOR,
             font=FONT_BOLD
@@ -195,12 +197,12 @@ class BruteForceWindow:
         ).pack(pady=(20, 5))
 
         encrypted_text_frame = tk.Frame(left_panel, bg=BG_COLOR)
-        encrypted_text_frame.pack(pady=5, fill="x", padx=10)
+        encrypted_text_frame.pack(pady=5, padx=50)
 
         self.encrypted_text = tk.Text(
             encrypted_text_frame,
-            width=50,
-            height=8,
+            width=45,
+            height=7,
             font=FONT_NORMAL
         )
         self.encrypted_text.pack(side="left", fill="both", expand=True)
@@ -224,15 +226,15 @@ class BruteForceWindow:
             bg=BG_COLOR,
             fg=FG_COLOR,
             font=FONT_BOLD
-        ).pack(pady=(20, 5))
+        ).pack(pady=(15, 5))
 
         expected_text_frame = tk.Frame(left_panel, bg=BG_COLOR)
-        expected_text_frame.pack(pady=5, fill="x", padx=10)
+        expected_text_frame.pack(pady=5, padx=50)
 
         self.expected_text = tk.Text(
             expected_text_frame,
-            width=50,
-            height=8,
+            width=45,
+            height=7,
             font=FONT_NORMAL
         )
         self.expected_text.pack(side="left", fill="both", expand=True)
@@ -249,7 +251,7 @@ class BruteForceWindow:
             fg="black"
         ).pack(pady=5)
 
-        # --- Кнопка старту/паузи ---
+        # --- Кнопка старту/паузи (центрована) ---
         self.start_button = tk.Button(
             left_panel,
             text="Старт",
@@ -266,25 +268,50 @@ class BruteForceWindow:
         right_panel = tk.Frame(main_container, bg=BG_COLOR)
         right_panel.pack(side="right", fill="both", expand=True, padx=(10, 0))
 
-        # --- Лічильник спроб (зверху, не в кутку) ---
-        attempts_frame = tk.Frame(right_panel, bg=BG_COLOR)
-        attempts_frame.pack(pady=10, fill="x")
+        # --- Лічильники спроб (зверху, центровані) ---
+        counters_frame = tk.Frame(right_panel, bg=BG_COLOR)
+        counters_frame.pack(pady=10)
+
+        # Загальна кількість спроб (сірий колір)
+        attempts_frame = tk.Frame(counters_frame, bg=BG_COLOR)
+        attempts_frame.pack(pady=5)
 
         tk.Label(
             attempts_frame,
             text="Кількість спроб:",
             bg=BG_COLOR,
-            fg=FG_COLOR,
-            font=("Arial", 12, "bold")
-        ).pack(side="left", padx=(50, 10))
+            fg="#808080",  # Сірий колір
+            font=("Arial", 11, "bold")
+        ).pack(side="left", padx=5)
 
         self.attempts_var = tk.StringVar(value="0")
         tk.Label(
             attempts_frame,
             textvariable=self.attempts_var,
             bg=BG_COLOR,
-            fg="#00FF00",
-            font=("Arial", 16, "bold")
+            fg="#808080",  # Сірий колір
+            font=("Arial", 14, "bold")
+        ).pack(side="left")
+
+        # Успішні спроби (зелений колір)
+        successful_frame = tk.Frame(counters_frame, bg=BG_COLOR)
+        successful_frame.pack(pady=5)
+
+        tk.Label(
+            successful_frame,
+            text="Успішних (обернена матриця існує):",
+            bg=BG_COLOR,
+            fg="#00AA00",  # Зелений колір
+            font=("Arial", 11, "bold")
+        ).pack(side="left", padx=5)
+
+        self.successful_var = tk.StringVar(value="0")
+        tk.Label(
+            successful_frame,
+            textvariable=self.successful_var,
+            bg=BG_COLOR,
+            fg="#00AA00",  # Зелений колір
+            font=("Arial", 14, "bold")
         ).pack(side="left")
 
         # --- Статус ---
@@ -304,7 +331,7 @@ class BruteForceWindow:
             bg=BG_COLOR,
             fg=FG_COLOR,
             font=("Arial", 12, "bold")
-        ).pack(pady=(20, 10))
+        ).pack(pady=(15, 10))
 
         # --- 5 контейнерів результатів ---
         self.result_containers = []
@@ -339,7 +366,7 @@ class BruteForceWindow:
             header_frame,
             textvariable=accuracy_var,
             bg=ACCENT_COLOR,
-            fg="#00FF00",
+            fg="#808080",  # Початково сірий
             font=FONT_BOLD
         )
         accuracy_label.pack(side="left", padx=20)
@@ -382,15 +409,27 @@ class BruteForceWindow:
         return {
             'frame': container_frame,
             'accuracy_var': accuracy_var,
+            'accuracy_label': accuracy_label,
             'info_var': info_var,
             'preview_var': preview_var,
             'download_btn': download_btn
         }
 
+    def get_accuracy_color(self, accuracy):
+        """Отримати колір на основі точності (0% = червоний, 100% = зелений)"""
+        # Нормалізуємо значення до 0-1
+        ratio = max(0, min(100, accuracy)) / 100.0
+
+        # Інтерполяція між червоним (#FF0000) та зеленим (#00FF00)
+        red = int(255 * (1 - ratio))
+        green = int(255 * ratio)
+
+        return f"#{red:02X}{green:02X}00"
+
     def toggle_modified_options(self):
         """Перемикання видимості опцій модифікованого режиму"""
         if self.brute_mode.get() == 1:
-            self.modified_options_frame.pack(pady=10, fill="x", after=self.matrix_size_var.master.master)
+            self.modified_options_frame.pack(pady=10, after=self.matrix_size_var.master)
         else:
             self.modified_options_frame.pack_forget()
 
@@ -451,16 +490,32 @@ class BruteForceWindow:
         self.is_running = True
         self.is_paused = False
         self.attempts_count = 0
+        self.successful_attempts = 0
         self.results = []
+        self.brute_threads = []
 
         # Оновлюємо UI
         self.start_button.config(text="Пауза")
-        self.status_var.set("Виконується брутфорс...")
+        self.status_var.set("Виконується брутфорс (2 потоки)...")
         self.clear_results()
 
-        # Запускаємо в окремому потоці
-        self.brute_thread = threading.Thread(target=self.brute_force_worker, daemon=True)
-        self.brute_thread.start()
+        # Запускаємо два потоки - один з початку, інший з кінця
+        thread1 = threading.Thread(target=self.brute_force_worker, args=(False,), daemon=True)
+        thread2 = threading.Thread(target=self.brute_force_worker, args=(True,), daemon=True)
+
+        self.brute_threads = [thread1, thread2]
+        thread1.start()
+        thread2.start()
+
+        # Потік для моніторингу завершення
+        monitor_thread = threading.Thread(target=self.monitor_threads, daemon=True)
+        monitor_thread.start()
+
+    def monitor_threads(self):
+        """Моніторинг завершення потоків"""
+        for thread in self.brute_threads:
+            thread.join()
+        self.window.after(0, self.stop_brute_force)
 
     def pause_brute_force(self):
         """Призупинення брутфорсу"""
@@ -472,7 +527,7 @@ class BruteForceWindow:
         """Продовження брутфорсу"""
         self.is_paused = False
         self.start_button.config(text="Пауза")
-        self.status_var.set("Виконується брутфорс...")
+        self.status_var.set("Виконується брутфорс (2 потоки)...")
 
     def stop_brute_force(self):
         """Зупинка брутфорсу"""
@@ -485,6 +540,7 @@ class BruteForceWindow:
         """Очищення контейнерів результатів"""
         for container in self.result_containers:
             container['accuracy_var'].set("Точність: ---%")
+            container['accuracy_label'].config(fg="#808080")
             container['info_var'].set("Параметри: ---")
             container['preview_var'].set("Текст: ---")
             container['download_btn'].config(state="disabled")
@@ -492,7 +548,7 @@ class BruteForceWindow:
     def calculate_accuracy(self, decrypted, expected):
         """
         Обчислення точності розшифрування.
-        Використовується формула схожості рядків (метод найдовшої спільної підпослідовності).
+        Використовується формула схожості рядків.
         """
         if not decrypted or not expected:
             return 0.0
@@ -510,6 +566,14 @@ class BruteForceWindow:
         accuracy = (matches / min_len) * length_penalty * 100
 
         return round(accuracy, 2)
+
+    def is_zero_matrix(self, matrix):
+        """Перевірка чи матриця складається тільки з нулів"""
+        for row in matrix:
+            for val in row:
+                if val != 0:
+                    return False
+        return True
 
     def is_valid_matrix(self, matrix, mod):
         """Перевірка чи матриця має обернену за модулем"""
@@ -529,7 +593,7 @@ class BruteForceWindow:
         except:
             return False
 
-    def brute_force_worker(self):
+    def brute_force_worker(self, reverse=False):
         """Робочий процес брутфорсу"""
         encrypted = self.encrypted_text.get("1.0", tk.END).strip()
         expected = self.expected_text.get("1.0", tk.END).strip()
@@ -538,25 +602,24 @@ class BruteForceWindow:
 
         if self.brute_mode.get() == 0:
             # Стандартний режим
-            self.brute_force_standard(encrypted, expected, matrix_size, mod)
+            self.brute_force_standard(encrypted, expected, matrix_size, mod, reverse)
         else:
             # Модифікований режим
             max_noise = self.max_noise_var.get()
-            self.brute_force_modified(encrypted, expected, matrix_size, mod, max_noise)
+            self.brute_force_modified(encrypted, expected, matrix_size, mod, max_noise, reverse)
 
-        # Завершення
-        self.window.after(0, self.stop_brute_force)
-
-    def brute_force_standard(self, encrypted, expected, matrix_size, mod):
+    def brute_force_standard(self, encrypted, expected, matrix_size, mod, reverse=False):
         """Брутфорс стандартного режиму"""
-        # Для малих матриць генеруємо всі можливі комбінації
-        # Обмежуємо діапазон значень для швидкості
         value_range = min(mod, 10)  # Обмежуємо до 10 значень для швидкості
-
-        # Генеруємо всі можливі матриці
         total_elements = matrix_size * matrix_size
 
-        for values in itertools.product(range(value_range), repeat=total_elements):
+        # Генеруємо всі можливі комбінації
+        all_combinations = list(itertools.product(range(value_range), repeat=total_elements))
+
+        if reverse:
+            all_combinations = list(reversed(all_combinations))
+
+        for values in all_combinations:
             # Перевіряємо чи потрібно зупинитися
             if not self.is_running:
                 return
@@ -568,11 +631,23 @@ class BruteForceWindow:
             # Формуємо матрицю
             matrix = [list(values[i*matrix_size:(i+1)*matrix_size]) for i in range(matrix_size)]
 
+            # Пропускаємо матриці з нулями
+            if self.is_zero_matrix(matrix):
+                with self.lock:
+                    self.attempts_count += 1
+                continue
+
             # Перевіряємо валідність матриці
             if not self.is_valid_matrix(matrix, mod):
-                self.attempts_count += 1
-                self.window.after(0, lambda: self.attempts_var.set(str(self.attempts_count)))
+                with self.lock:
+                    self.attempts_count += 1
+                    if self.attempts_count % 100 == 0:
+                        self.window.after(0, self.update_counters)
                 continue
+
+            # Успішна матриця (має обернену)
+            with self.lock:
+                self.successful_attempts += 1
 
             # Спробуємо розшифрувати
             try:
@@ -590,29 +665,39 @@ class BruteForceWindow:
             except Exception:
                 pass
 
-            self.attempts_count += 1
+            with self.lock:
+                self.attempts_count += 1
 
-            # Оновлюємо лічильник кожні 100 спроб
-            if self.attempts_count % 100 == 0:
-                self.window.after(0, lambda c=self.attempts_count: self.attempts_var.set(str(c)))
+                # Оновлюємо лічильник кожні 100 спроб
+                if self.attempts_count % 100 == 0:
+                    self.window.after(0, self.update_counters)
 
-    def brute_force_modified(self, encrypted, expected, matrix_size, mod, max_noise):
+    def brute_force_modified(self, encrypted, expected, matrix_size, mod, max_noise, reverse=False):
         """Брутфорс модифікованого режиму"""
         value_range = min(mod, 8)  # Менший діапазон для модифікованого режиму
-
         total_elements = matrix_size * matrix_size
 
+        # Генеруємо комбінації
+        all_combinations = list(itertools.product(range(value_range), repeat=total_elements))
+
+        if reverse:
+            all_combinations = list(reversed(all_combinations))
+
         # Перебираємо різні довжини шуму
-        for noise_length in range(max_noise + 1):
+        noise_range = range(max_noise + 1) if not reverse else reversed(range(max_noise + 1))
+
+        for noise_length in noise_range:
             if noise_length >= matrix_size:
                 continue
 
             # Генеруємо прості підстановки (циклічний зсув)
-            for shift in range(mod):
+            shift_range = range(mod) if not reverse else reversed(range(mod))
+
+            for shift in shift_range:
                 substitution = [(i + shift) % mod for i in range(mod)]
 
                 # Генеруємо матриці
-                for values in itertools.product(range(value_range), repeat=total_elements):
+                for values in all_combinations:
                     if not self.is_running:
                         return
 
@@ -621,11 +706,22 @@ class BruteForceWindow:
 
                     matrix = [list(values[i*matrix_size:(i+1)*matrix_size]) for i in range(matrix_size)]
 
-                    if not self.is_valid_matrix(matrix, mod):
-                        self.attempts_count += 1
-                        if self.attempts_count % 100 == 0:
-                            self.window.after(0, lambda c=self.attempts_count: self.attempts_var.set(str(c)))
+                    # Пропускаємо матриці з нулями
+                    if self.is_zero_matrix(matrix):
+                        with self.lock:
+                            self.attempts_count += 1
                         continue
+
+                    if not self.is_valid_matrix(matrix, mod):
+                        with self.lock:
+                            self.attempts_count += 1
+                            if self.attempts_count % 100 == 0:
+                                self.window.after(0, self.update_counters)
+                        continue
+
+                    # Успішна матриця
+                    with self.lock:
+                        self.successful_attempts += 1
 
                     try:
                         decrypted = hill_decrypt_modified(
@@ -644,10 +740,16 @@ class BruteForceWindow:
                     except Exception:
                         pass
 
-                    self.attempts_count += 1
+                    with self.lock:
+                        self.attempts_count += 1
 
-                    if self.attempts_count % 100 == 0:
-                        self.window.after(0, lambda c=self.attempts_count: self.attempts_var.set(str(c)))
+                        if self.attempts_count % 100 == 0:
+                            self.window.after(0, self.update_counters)
+
+    def update_counters(self):
+        """Оновлення лічильників у UI"""
+        self.attempts_var.set(str(self.attempts_count))
+        self.successful_var.set(str(self.successful_attempts))
 
     def add_result(self, accuracy, matrix, substitution, noise_length, decrypted_text):
         """Додавання результату до списку найкращих"""
@@ -659,12 +761,20 @@ class BruteForceWindow:
             'decrypted_text': decrypted_text
         }
 
-        # Додаємо та сортуємо за точністю
-        self.results.append(result)
-        self.results.sort(key=lambda x: x['accuracy'], reverse=True)
+        with self.lock:
+            # Перевіряємо чи такий результат вже є
+            for existing in self.results:
+                if existing['matrix'] == result['matrix'] and \
+                   existing['substitution'] == result['substitution'] and \
+                   existing['noise_length'] == result['noise_length']:
+                    return  # Пропускаємо дублікати
 
-        # Залишаємо тільки топ-5
-        self.results = self.results[:5]
+            # Додаємо та сортуємо за точністю
+            self.results.append(result)
+            self.results.sort(key=lambda x: x['accuracy'], reverse=True)
+
+            # Залишаємо тільки топ-5
+            self.results = self.results[:5]
 
         # Оновлюємо UI
         self.window.after(0, self.update_results_ui)
@@ -675,7 +785,12 @@ class BruteForceWindow:
             if i < len(self.results):
                 result = self.results[i]
 
-                container['accuracy_var'].set(f"Точність: {result['accuracy']}%")
+                accuracy = result['accuracy']
+                container['accuracy_var'].set(f"Точність: {accuracy}%")
+
+                # Встановлюємо колір на основі точності
+                color = self.get_accuracy_color(accuracy)
+                container['accuracy_label'].config(fg=color)
 
                 # Параметри
                 matrix_str = f"Матриця {len(result['matrix'])}x{len(result['matrix'])}"
@@ -694,6 +809,7 @@ class BruteForceWindow:
                 container['download_btn'].config(state="normal")
             else:
                 container['accuracy_var'].set("Точність: ---%")
+                container['accuracy_label'].config(fg="#808080")
                 container['info_var'].set("Параметри: ---")
                 container['preview_var'].set("Текст: ---")
                 container['download_btn'].config(state="disabled")
