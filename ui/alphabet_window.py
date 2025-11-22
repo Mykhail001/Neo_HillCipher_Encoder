@@ -221,7 +221,9 @@ class AlphabetWindow:
 
     def save_template(self):
         """Зберегти алфавіт"""
-        alphabet_text = self.alphabet_text.get("1.0", "end-1c").upper()
+        # НЕ конвертуємо в upper() - це дозволяє зберігати алфавіти з
+        # великими та малими літерами (наприклад, Base64)
+        alphabet_text = self.alphabet_text.get("1.0", "end-1c")
 
         if not alphabet_text:
             messagebox.showerror("Помилка", "Алфавіт порожній.")
