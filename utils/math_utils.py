@@ -4,9 +4,13 @@
 
 import numpy as np
 from functools import lru_cache
+import copy
 
 # Глобальна змінна для логування циркулянтних матриць
 _circulant_matrix_log = []
+
+# Поріг для використання швидкого алгоритму визначника
+FAST_DETERMINANT_THRESHOLD = 6
 
 
 def get_circulant_log():
@@ -97,8 +101,8 @@ def circulant_cofactor_column(matrix, col_idx=0):
 def circulant_inverse(matrix, mod):
     """
     Обчислює обернену матрицю для циркулянтної матриці.
-    Оптимізація: обчислюємо тільки перший стовпець кофакторів,
-    потім зсуваємо для отримання всієї матриці.
+    Для великих циркулянтних матриць використовуємо метод Гауса (швидше).
+    Для малих - оптимізацію з одним стовпцем кофакторів.
 
     Args:
         matrix: циркулянтна матриця
@@ -115,6 +119,20 @@ def circulant_inverse(matrix, mod):
         matrix_list = matrix
 
     n = len(matrix_list)
+
+    # Для великих циркулянтних матриць метод Гауса все одно швидший
+    if n >= FAST_DETERMINANT_THRESHOLD:
+        print(f"  [Циркулянтна матриця {n}x{n}] Використовується метод Гауса-Жордана")
+        _circulant_matrix_log.append({
+            'size': n,
+            'type': 'circulant_detected',
+            'optimization': 'gauss_jordan_for_large'
+        })
+        matrix_np = np.array(matrix_list, dtype=np.int64)
+        return matrix_mod_inverse_gauss(matrix_np, mod)
+
+    # Для малих матриць - класичний метод з оптимізацією
+    print(f"  [Циркулянтна матриця {n}x{n}] Використовується оптимізація через зсув кофакторів")
 
     # Обчислюємо визначник
     det = determinant_int(matrix_list)
@@ -144,12 +162,10 @@ def circulant_inverse(matrix, mod):
     })
 
     # Будуємо повну матрицю кофакторів через циклічні зсуви
-    # Для циркулянтної матриці: cofactor[i][j] = shift(first_col, j)[i]
     cofactors = np.zeros((n, n), dtype=np.int64)
 
     for j in range(n):
         for i in range(n):
-            # Зсув: елемент cofactors[i][j] = first_col[(i - j) % n]
             cofactors[i, j] = first_col_cofactors[(i - j) % n]
 
     # Транспонуємо та множимо на обернений детермінант
@@ -193,28 +209,73 @@ def mod_inverse(a, m):
     return t + m if t < 0 else t
 
 
-def determinant_int(matrix):
+def determinant_bareiss(matrix):
     """
-    Обчислення визначника матриці з використанням ТІЛЬКИ цілих чисел.
-    Рекурсивне розкладання за кофакторами - без float, без округлення, точний результат.
+    Обчислення визначника матриці за алгоритмом Bareiss (fraction-free Gaussian elimination).
+    Складність O(n³) замість O(n!) для рекурсивного методу.
+    Працює тільки з цілими числами без втрати точності.
     """
-    # Convert to list of lists if numpy array
+    if hasattr(matrix, 'tolist'):
+        matrix = matrix.tolist()
+
+    n = len(matrix)
+    if n == 0:
+        return 1
+    if n == 1:
+        return int(matrix[0][0])
+
+    # Створюємо копію матриці
+    M = [row[:] for row in matrix]
+
+    sign = 1
+    prev_pivot = 1
+
+    for k in range(n - 1):
+        # Пошук ненульового pivot елемента
+        pivot_row = None
+        for i in range(k, n):
+            if M[i][k] != 0:
+                pivot_row = i
+                break
+
+        if pivot_row is None:
+            return 0  # Матриця вироджена
+
+        # Обмін рядків якщо потрібно
+        if pivot_row != k:
+            M[k], M[pivot_row] = M[pivot_row], M[k]
+            sign = -sign
+
+        pivot = M[k][k]
+
+        # Bareiss elimination
+        for i in range(k + 1, n):
+            for j in range(k + 1, n):
+                M[i][j] = (M[i][j] * pivot - M[i][k] * M[k][j]) // prev_pivot
+
+        prev_pivot = pivot
+
+    return sign * M[n - 1][n - 1]
+
+
+def determinant_int_recursive(matrix):
+    """
+    Рекурсивне обчислення визначника (повільне, O(n!)).
+    Використовується тільки для малих матриць.
+    """
     if hasattr(matrix, 'tolist'):
         matrix = matrix.tolist()
 
     n = len(matrix)
 
-    # Base cases
     if n == 1:
         return int(matrix[0][0])
 
     if n == 2:
         return int(matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0])
 
-    # Recursive cofactor expansion along first row
     det = 0
     for j in range(n):
-        # Build minor matrix (exclude row 0 and column j)
         minor = []
         for row in range(1, n):
             minor_row = []
@@ -223,13 +284,28 @@ def determinant_int(matrix):
                     minor_row.append(matrix[row][col])
             minor.append(minor_row)
 
-        # Cofactor sign: (-1)^(0+j)
         sign = 1 if j % 2 == 0 else -1
-
-        # Recursive call for minor determinant
-        det += sign * int(matrix[0][j]) * determinant_int(minor)
+        det += sign * int(matrix[0][j]) * determinant_int_recursive(minor)
 
     return det
+
+
+def determinant_int(matrix):
+    """
+    Обчислення визначника матриці з використанням ТІЛЬКИ цілих чисел.
+    Автоматично вибирає оптимальний алгоритм залежно від розміру.
+    """
+    if hasattr(matrix, 'tolist'):
+        matrix = matrix.tolist()
+
+    n = len(matrix)
+
+    # Для малих матриць - рекурсивний метод (точний і швидкий для n <= 5)
+    if n <= FAST_DETERMINANT_THRESHOLD:
+        return determinant_int_recursive(matrix)
+
+    # Для великих матриць - Bareiss O(n³)
+    return determinant_bareiss(matrix)
 
 
 def determinant(matrix):
@@ -258,10 +334,62 @@ def matrix_minor(matrix, i, j):
     return determinant_int(minor)
 
 
+def matrix_mod_inverse_gauss(matrix, mod):
+    """
+    Обчислення оберненої матриці по модулю методом Гауса-Жордана.
+    Складність O(n³) - набагато швидше ніж через кофактори.
+    """
+    n = matrix.shape[0]
+
+    # Створюємо розширену матрицю [A|I]
+    augmented = np.zeros((n, 2 * n), dtype=np.int64)
+    augmented[:, :n] = matrix
+    for i in range(n):
+        augmented[i, n + i] = 1
+
+    print(f"  [Обернена матриця] Розмір: {n}x{n}, модуль: {mod}")
+
+    for col in range(n):
+        # Знаходимо pivot
+        pivot_row = None
+        for row in range(col, n):
+            if augmented[row, col] % mod != 0:
+                pivot_row = row
+                break
+
+        if pivot_row is None:
+            raise ValueError("Матриця вироджена - обернена не існує")
+
+        # Обмін рядків
+        if pivot_row != col:
+            augmented[[col, pivot_row]] = augmented[[pivot_row, col]]
+
+        # Знаходимо обернений pivot елемент
+        pivot_val = int(augmented[col, col]) % mod
+        pivot_inv = mod_inverse(pivot_val, mod)
+
+        # Нормалізуємо поточний рядок
+        augmented[col] = (augmented[col] * pivot_inv) % mod
+
+        # Елімінуємо інші рядки
+        for row in range(n):
+            if row != col and augmented[row, col] != 0:
+                factor = int(augmented[row, col])
+                augmented[row] = (augmented[row] - factor * augmented[col]) % mod
+
+        if (col + 1) % 3 == 0 or col == n - 1:
+            print(f"  [Обернена матриця] Прогрес: {col + 1}/{n} стовпців")
+
+    # Витягуємо обернену матрицю
+    inv_matrix = augmented[:, n:].astype(np.int64)
+    return np.mod(inv_matrix, mod)
+
+
 def matrix_mod_inverse(matrix, mod):
     """
     Обчислення оберненої матриці по модулю з цілочисельною арифметикою.
     Автоматично визначає циркулянтні матриці та використовує оптимізований алгоритм.
+    Для великих матриць використовує метод Гауса-Жордана O(n³).
     """
     global _circulant_matrix_log
 
@@ -269,7 +397,7 @@ def matrix_mod_inverse(matrix, mod):
 
     # Перевіряємо чи матриця циркулянтна
     if is_circulant_matrix(matrix):
-        # Логуємо використання оптимізації (без виведення на екран)
+        print(f"  [Матриця] Виявлено циркулянтну матрицю {n}x{n} - використовується оптимізований алгоритм")
         _circulant_matrix_log.append({
             'size': n,
             'type': 'circulant_detected',
@@ -277,6 +405,12 @@ def matrix_mod_inverse(matrix, mod):
         })
         return circulant_inverse(matrix, mod)
 
+    # Для великих матриць використовуємо метод Гауса
+    if n >= FAST_DETERMINANT_THRESHOLD:
+        print(f"  [Матриця] Велика матриця {n}x{n} - використовується метод Гауса-Жордана")
+        return matrix_mod_inverse_gauss(matrix, mod)
+
+    # Для малих матриць - класичний метод через кофактори
     det = determinant_int(matrix)
     det_mod = det % mod
 
