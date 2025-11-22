@@ -169,25 +169,48 @@ class MatrixWindow:
 
     def create_circular_mode(self):
         """Створення параметричного режиму"""
-        # Поля введення
-        self.alpha_entry = self.create_labeled_entry(
-            self.circular_frame, "Альфа:"
-        )
-        self.beta_entry = self.create_labeled_entry(
-            self.circular_frame, "Бета:"
-        )
-        self.alphabet_size_entry = self.create_labeled_entry(
-            self.circular_frame, "Розмір алфавіту:"
-        )
-        self.private_key_entry = self.create_labeled_entry(
-            self.circular_frame, "Приватний ключ:"
-        )
-        self.noise_size_entry = self.create_labeled_entry(
-            self.circular_frame, "Розмір шуму:"
-        )
-        self.signature_entry = self.create_labeled_entry(
-            self.circular_frame, "Підпис:"
-        )
+        # Контейнер для полів введення з сіткою
+        params_frame = tk.Frame(self.circular_frame, bg=BG_COLOR)
+        params_frame.pack(pady=10)
+
+        # Поля введення в 2 колонки
+        # Ліва колонка
+        tk.Label(
+            params_frame, text="Альфа:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        self.alpha_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        self.alpha_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+
+        tk.Label(
+            params_frame, text="Бета:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        self.beta_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        self.beta_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+
+        tk.Label(
+            params_frame, text="Розмір шуму:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        self.noise_size_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        self.noise_size_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+
+        # Права колонка
+        tk.Label(
+            params_frame, text="Розмір алфавіту:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=0, column=2, padx=(30, 5), pady=5, sticky="e")
+        self.alphabet_size_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        self.alphabet_size_entry.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+
+        tk.Label(
+            params_frame, text="Приватний ключ:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=1, column=2, padx=(30, 5), pady=5, sticky="e")
+        self.private_key_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        self.private_key_entry.grid(row=1, column=3, padx=5, pady=5, sticky="w")
+
+        tk.Label(
+            params_frame, text="Підпис:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=2, column=2, padx=(30, 5), pady=5, sticky="e")
+        self.signature_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        self.signature_entry.grid(row=2, column=3, padx=5, pady=5, sticky="w")
 
         # Секція без підпису
         no_sig_frame = tk.Frame(self.circular_frame, bg=BG_COLOR)
@@ -318,20 +341,49 @@ class MatrixWindow:
         """Відкрити вікно створення підпису"""
         sig_win = tk.Toplevel(self.circular_frame)
         sig_win.title("Створити підпис")
-        sig_win.geometry("400x500")
+        sig_win.geometry("600x400")
         sig_win.configure(bg=BG_COLOR)
 
         signature_var = tk.StringVar(value="")
         filename_var = tk.StringVar(value="")
 
-        # Поля введення
-        filename_entry = self.create_labeled_entry(sig_win, "Назва матриці:")
-        filename_entry.config(textvariable=filename_var)
+        # Контейнер для полів введення з сіткою
+        params_frame = tk.Frame(sig_win, bg=BG_COLOR)
+        params_frame.pack(pady=10)
 
-        alpha_new = self.create_labeled_entry(sig_win, "Альфа:")
-        alphabet_size_new = self.create_labeled_entry(sig_win, "Розмір алфавіту:")
-        private_key_new = self.create_labeled_entry(sig_win, "Приватний ключ:")
-        noise_size_new = self.create_labeled_entry(sig_win, "Розмір шуму:")
+        # Назва матриці (окремий рядок)
+        tk.Label(
+            params_frame, text="Назва матриці:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        filename_entry = tk.Entry(params_frame, width=20, font=FONT_NORMAL, textvariable=filename_var)
+        filename_entry.grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky="w")
+
+        # Поля введення в 2 колонки
+        # Ліва колонка
+        tk.Label(
+            params_frame, text="Альфа:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        alpha_new = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        alpha_new.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+
+        tk.Label(
+            params_frame, text="Приватний ключ:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        private_key_new = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        private_key_new.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+
+        # Права колонка
+        tk.Label(
+            params_frame, text="Розмір алфавіту:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=1, column=2, padx=(30, 5), pady=5, sticky="e")
+        alphabet_size_new = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        alphabet_size_new.grid(row=1, column=3, padx=5, pady=5, sticky="w")
+
+        tk.Label(
+            params_frame, text="Розмір шуму:", bg=BG_COLOR, fg=FG_COLOR, font=FONT_BOLD, anchor="e"
+        ).grid(row=2, column=2, padx=(30, 5), pady=5, sticky="e")
+        noise_size_new = tk.Entry(params_frame, width=20, font=FONT_NORMAL)
+        noise_size_new.grid(row=2, column=3, padx=5, pady=5, sticky="w")
 
         signature_label = tk.Label(
             sig_win,
