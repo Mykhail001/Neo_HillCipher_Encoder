@@ -233,10 +233,7 @@ class EncryptWindow:
             textvariable=self.file_path_var,
             bg=BG_COLOR,
             fg=FG_COLOR,
-            font=FONT_NORMAL,
-            width=50,
-            anchor="w",
-            padx=5
+            font=FONT_NORMAL
         ).pack(side="left", padx=5)
 
         tk.Button(

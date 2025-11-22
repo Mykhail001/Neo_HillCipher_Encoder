@@ -127,6 +127,9 @@ class DecryptWindow:
             height=2,
             bg=CELL_BG,
             fg="black",
+            selectcolor=ACCENT_COLOR,
+            activebackground=BUTTON_BG,
+            relief="raised",
             command=self.toggle_subst_frame
         )
         self.rb_standard.pack(side="left", padx=5)
@@ -141,6 +144,9 @@ class DecryptWindow:
             height=2,
             bg=CELL_BG,
             fg="black",
+            selectcolor=ACCENT_COLOR,
+            activebackground=BUTTON_BG,
+            relief="raised",
             command=self.toggle_subst_frame
         )
         self.rb_modified.pack(side="left", padx=5)
@@ -240,10 +246,7 @@ class DecryptWindow:
             textvariable=self.file_path_var,
             bg=BG_COLOR,
             fg=FG_COLOR,
-            font=FONT_NORMAL,
-            width=50,
-            anchor="w",
-            padx=5
+            font=FONT_NORMAL
         ).pack(side="left", padx=5)
 
         tk.Button(
