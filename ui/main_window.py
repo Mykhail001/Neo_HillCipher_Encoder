@@ -10,7 +10,7 @@ class MainWindow:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Hill Cipher MultiTool")
-        self.root.geometry("500x400")
+        self.root.geometry("500x450")
         self.root.configure(bg=BG_COLOR)
 
         self.create_widgets()
@@ -72,6 +72,17 @@ class MainWindow:
             height=2
         ).pack(pady=10)
 
+        tk.Button(
+            self.root,
+            text="Брутфорс",
+            command=self.open_brute_force_window,
+            font=FONT_BOLD,
+            bg=BUTTON_BG,
+            fg=FG_COLOR,
+            width=25,
+            height=2
+        ).pack(pady=10)
+
     def open_alphabet_window(self):
         """Відкрити вікно створення алфавіту"""
         from ui.alphabet_window import AlphabetWindow
@@ -96,6 +107,11 @@ class MainWindow:
         """Відкрити вікно розшифрування"""
         from ui.decrypt_window import DecryptWindow
         DecryptWindow(self.root)
+
+    def open_brute_force_window(self):
+        """Відкрити вікно брутфорсу"""
+        from ui.brute_force_window import BruteForceWindow
+        BruteForceWindow(self.root)
 
     def run(self):
         """Запуск головного циклу"""
