@@ -231,8 +231,8 @@ class EncryptWindow:
         tk.Label(
             file_select_frame,
             textvariable=self.file_path_var,
-            bg=CELL_BG,
-            fg="black",
+            bg=BG_COLOR,
+            fg=FG_COLOR,
             font=FONT_NORMAL,
             width=50,
             anchor="w",
@@ -328,12 +328,16 @@ class EncryptWindow:
         if self.input_mode.get() == 0:
             # Режим тексту
             self.file_frame.pack_forget()
+            self.encrypt_btn.pack_forget()
             self.text_frame.pack(pady=5)
+            self.encrypt_btn.pack(pady=10)
             self.encrypt_btn.config(text="Зашифрувати текст")
         else:
             # Режим файлу
             self.text_frame.pack_forget()
+            self.encrypt_btn.pack_forget()
             self.file_frame.pack(pady=5)
+            self.encrypt_btn.pack(pady=10)
             self.encrypt_btn.config(text="Зашифрувати файл")
 
     def select_file(self):
@@ -342,16 +346,23 @@ class EncryptWindow:
             title="Виберіть файл для шифрування"
         )
         if fpath:
-            self.selected_file_path = fpath
-            filename = os.path.basename(fpath)
-            self.file_path_var.set(filename)
+            try:
+                if not os.path.exists(fpath):
+                    messagebox.showerror("Помилка", f"Файл не знайдено:\n{fpath}")
+                    return
 
-            # Показуємо інформацію про файл
-            file_size = os.path.getsize(fpath)
-            ext = os.path.splitext(fpath)[1] or "без розширення"
-            self.file_info_var.set(
-                f"Розмір: {file_size} байт | Формат: {ext}"
-            )
+                self.selected_file_path = fpath
+                filename = os.path.basename(fpath)
+                self.file_path_var.set(filename)
+
+                # Показуємо інформацію про файл
+                file_size = os.path.getsize(fpath)
+                ext = os.path.splitext(fpath)[1] or "без розширення"
+                self.file_info_var.set(
+                    f"Розмір: {file_size} байт | Формат: {ext}"
+                )
+            except Exception as e:
+                messagebox.showerror("Помилка", f"Не вдалося відкрити файл:\n{str(e)}")
 
     def open_alphabet_file(self):
         """Відкрити файл алфавіту"""
@@ -366,7 +377,6 @@ class EncryptWindow:
         self.alphabet_name = name
 
         self.alphabet_info_var.set(f"{self.alphabet_name} ({len(self.alphabet)})")
-        messagebox.showinfo("Інформація", f"Алфавіт завантажено:\n{self.alphabet}")
 
     def update_subst_visibility(self):
         """Оновити видимість підстановки та шуму"""
@@ -503,35 +513,16 @@ class EncryptWindow:
             messagebox.showerror("Помилка", "Символ padding має бути одним символом!")
             return
 
-        print("\n" + "=" * 60)
-        print("ШИФРУВАННЯ ФАЙЛУ - DEBUG")
-        print("=" * 60)
-
         try:
             # 1. Конвертуємо файл в Base64 з маркером формату
             base64_text, original_ext = file_to_base64_with_marker(self.selected_file_path)
-            print(f"\n[КРОК 1] Конвертація файлу в Base64")
-            print(f"  Файл: {os.path.basename(self.selected_file_path)}")
-            print(f"  Оригінальний розмір: {os.path.getsize(self.selected_file_path)} байт")
-            print(f"  Розширення: {original_ext or 'немає'}")
-            print(f"  Base64 довжина: {len(base64_text)} символів")
-            print(f"  Перші 100 символів Base64: {base64_text[:100]}...")
 
             # 2. Додаємо padding до кратності розміру матриці
             matrix_size = len(self.loaded_matrix)
             padded_text, padding_count = add_padding_for_matrix(base64_text, matrix_size, padding_symbol)
-            print(f"\n[КРОК 2] Додавання padding")
-            print(f"  Розмір матриці: {matrix_size}x{matrix_size}")
-            print(f"  Символ padding: '{padding_symbol}'")
-            print(f"  Додано padding символів: {padding_count}")
-            print(f"  Довжина після padding: {len(padded_text)} символів")
 
             # 3. Перевіряємо, чи всі символи є в алфавіті
             is_valid, missing_chars = validate_text_for_alphabet(padded_text, self.alphabet)
-            print(f"\n[КРОК 3] Валідація алфавіту")
-            print(f"  Алфавіт: {self.alphabet_name} ({len(self.alphabet)} символів)")
-            print(f"  Алфавіт (символи): {self.alphabet}")
-            print(f"  Валідний: {is_valid}")
             if not is_valid:
                 missing_list = sorted(list(missing_chars))
                 missing_str = ', '.join([f"'{c}'" for c in missing_list[:20]])
@@ -548,24 +539,17 @@ class EncryptWindow:
                 return
 
             # 4. Шифруємо
-            print(f"\n[КРОК 4] Шифрування Hill Cipher")
             if self.encryption_mode.get() == 0:
                 # Стандартне шифрування
-                print(f"  Режим: Стандартне шифрування")
                 numbers = text_to_numbers(padded_text, self.alphabet)
-                print(f"  Перетворено в числа: {len(numbers)} значень")
-                print(f"  Перші 20 чисел: {numbers[:20]}...")
                 enc_numbers = hill_encrypt_standard(
                     numbers,
                     self.loaded_matrix,
                     self.alphabet
                 )
-                print(f"  Зашифровані числа (перші 20): {enc_numbers[:20]}...")
                 enc_txt = "".join(self.alphabet[num] for num in enc_numbers)
-                print(f"  Зашифрований текст (перші 100 символів): {enc_txt[:100]}...")
             else:
                 # Модифіковане шифрування
-                print(f"  Режим: Модифіковане шифрування")
                 if not self.substitution_mapping:
                     messagebox.showerror("Помилка", "Підстановку не вибрано!")
                     return
@@ -590,8 +574,6 @@ class EncryptWindow:
                     )
                     return
 
-                print(f"  Довжина шуму: {noise_length}")
-                print(f"  Підстановка (перші 20): {self.substitution_mapping[:20]}...")
                 enc_txt = hill_encrypt_modified(
                     padded_text,
                     self.loaded_matrix,
@@ -599,10 +581,8 @@ class EncryptWindow:
                     self.substitution_mapping,
                     noise_length
                 )
-                print(f"  Зашифрований текст (перші 100 символів): {enc_txt[:100]}...")
 
             # 5. Зберігаємо результат
-            print(f"\n[КРОК 5] Збереження зашифрованого файлу")
             base_name = os.path.splitext(os.path.basename(self.selected_file_path))[0]
             default_name = f"{base_name}.encrypted"
 
@@ -617,21 +597,7 @@ class EncryptWindow:
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(enc_txt)
 
-                # Показуємо статистику
                 original_size = os.path.getsize(self.selected_file_path)
-                print(f"  Збережено в: {file_path}")
-                print(f"  Довжина зашифрованого тексту: {len(enc_txt)} символів")
-
-                print(f"\n" + "=" * 60)
-                print("ПІДСУМОК ШИФРУВАННЯ")
-                print("=" * 60)
-                print(f"  Оригінальний файл: {os.path.basename(self.selected_file_path)}")
-                print(f"  Оригінальний розмір: {original_size} байт")
-                print(f"  Base64 довжина: {len(base64_text)} символів")
-                print(f"  Padding символів: {padding_count}")
-                print(f"  Фінальна довжина: {len(enc_txt)} символів")
-                print(f"  Вихідний файл: {os.path.basename(file_path)}")
-                print("=" * 60 + "\n")
 
                 messagebox.showinfo(
                     "Успіх",
@@ -644,9 +610,6 @@ class EncryptWindow:
                     f"Фінальна довжина: {len(enc_txt)} символів\n\n"
                     f"Збережено: {os.path.basename(file_path)}"
                 )
-            else:
-                print("  Збереження скасовано користувачем")
 
         except Exception as e:
-            print(f"\n[ПОМИЛКА] {str(e)}")
             messagebox.showerror("Помилка", f"Не вдалося зашифрувати файл:\n{str(e)}")
