@@ -83,7 +83,7 @@ def file_to_base64_with_marker(file_path):
     return marker + encoded_str, original_extension
 
 
-def add_padding_for_matrix(text, matrix_size, padding_char=PADDING_SYMBOL):
+def add_padding_for_matrix(text, matrix_size, padding_char=DEFAULT_PADDING_SYMBOL):
     """
     Додає padding символи до тексту, щоб довжина була кратна розміру матриці
 
@@ -100,7 +100,7 @@ def add_padding_for_matrix(text, matrix_size, padding_char=PADDING_SYMBOL):
     return text + (padding_char * padding_count), padding_count
 
 
-def remove_padding(text, padding_char=PADDING_SYMBOL):
+def remove_padding(text, padding_char=DEFAULT_PADDING_SYMBOL):
     """
     Видаляє padding символи з кінця тексту
 

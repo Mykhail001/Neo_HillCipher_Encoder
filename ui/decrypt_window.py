@@ -581,25 +581,43 @@ class DecryptWindow:
             messagebox.showerror("Помилка", "Символ padding має бути одним символом!")
             return
 
+        print("\n" + "=" * 60)
+        print("РОЗШИФРУВАННЯ ФАЙЛУ - DEBUG")
+        print("=" * 60)
+
         try:
             # 1. Читаємо зашифрований файл
             with open(self.selected_file_path, "r", encoding="utf-8") as f:
                 encrypted_text = f.read()
 
             encrypted_length = len(encrypted_text)
+            print(f"\n[КРОК 1] Читання зашифрованого файлу")
+            print(f"  Файл: {os.path.basename(self.selected_file_path)}")
+            print(f"  Довжина: {encrypted_length} символів")
+            print(f"  Перші 100 символів: {encrypted_text[:100]}...")
 
             # 2. Розшифровуємо
+            print(f"\n[КРОК 2] Розшифрування Hill Cipher")
+            print(f"  Алфавіт: {self.alphabet_name} ({len(self.alphabet)} символів)")
+            print(f"  Алфавіт (символи): {self.alphabet}")
+            print(f"  Розмір матриці: {len(self.loaded_matrix_dec)}x{len(self.loaded_matrix_dec)}")
             if self.decryption_mode.get() == 0:
                 # Стандартне розшифрування
+                print(f"  Режим: Стандартне розшифрування")
                 ciphertext_numbers = text_to_numbers(encrypted_text, self.alphabet)
+                print(f"  Перетворено в числа: {len(ciphertext_numbers)} значень")
+                print(f"  Перші 20 чисел: {ciphertext_numbers[:20]}...")
                 dec_numbers = hill_decrypt_standard(
                     ciphertext_numbers,
                     self.loaded_matrix_dec,
                     self.alphabet
                 )
+                print(f"  Розшифровані числа (перші 20): {dec_numbers[:20]}...")
                 decrypted_text = numbers_to_text(dec_numbers, self.alphabet)
+                print(f"  Розшифрований текст (перші 100 символів): {decrypted_text[:100]}...")
             else:
                 # Модифіковане розшифрування з підстановкою
+                print(f"  Режим: Модифіковане розшифрування")
                 if not self.substitution_mapping_dec:
                     messagebox.showerror("Помилка", "Підстановку не вибрано!")
                     return
@@ -626,6 +644,8 @@ class DecryptWindow:
                     )
                     return
 
+                print(f"  Довжина шуму: {noise_length}")
+                print(f"  Підстановка (перші 20): {self.substitution_mapping_dec[:20]}...")
                 decrypted_text = hill_decrypt_modified(
                     encrypted_text,
                     self.loaded_matrix_dec,
@@ -633,17 +653,37 @@ class DecryptWindow:
                     self.substitution_mapping_dec,
                     noise_length
                 )
+                print(f"  Розшифрований текст (перші 100 символів): {decrypted_text[:100]}...")
 
             # 3. Видаляємо padding
             clean_text, padding_removed = remove_padding(decrypted_text, padding_symbol)
+            print(f"\n[КРОК 3] Видалення padding")
+            print(f"  Символ padding: '{padding_symbol}'")
+            print(f"  Видалено символів: {padding_removed}")
+            print(f"  Довжина після видалення: {len(clean_text)} символів")
+            print(f"  Перші 100 символів: {clean_text[:100]}...")
 
-            # 4. Конвертуємо Base64 назад у файл
+            # Перевіряємо наявність маркера EXT
+            has_ext_marker = clean_text.startswith("EXT:")
+            print(f"\n[КРОК 4] Конвертація Base64 назад у файл")
+            print(f"  Маркер EXT знайдено: {has_ext_marker}")
+            if has_ext_marker:
+                # Витягуємо розширення для показу
+                try:
+                    first_colon = clean_text.index(":")
+                    second_colon = clean_text.index(":", first_colon + 1)
+                    ext = clean_text[first_colon + 1:second_colon]
+                    print(f"  Оригінальне розширення: {ext}")
+                except ValueError:
+                    print(f"  УВАГА: Не вдалося розпарсити маркер EXT!")
+
             # Вибираємо папку для збереження
             output_dir = filedialog.askdirectory(
                 title="Виберіть папку для збереження відновленого файлу"
             )
 
             if not output_dir:
+                print("  Збереження скасовано користувачем")
                 return
 
             base_name = os.path.splitext(os.path.basename(self.selected_file_path))[0]
@@ -655,6 +695,20 @@ class DecryptWindow:
 
             if success:
                 restored_size = os.path.getsize(result)
+                print(f"  Збережено в: {result}")
+                print(f"  Розмір відновленого файлу: {restored_size} байт")
+
+                print(f"\n" + "=" * 60)
+                print("ПІДСУМОК РОЗШИФРУВАННЯ")
+                print("=" * 60)
+                print(f"  Зашифрований файл: {os.path.basename(self.selected_file_path)}")
+                print(f"  Довжина зашифрованого: {encrypted_length} символів")
+                print(f"  Видалено padding: {padding_removed} символів")
+                print(f"  Base64 довжина: {len(clean_text)} символів")
+                print(f"  Відновлений файл: {os.path.basename(result)}")
+                print(f"  Розмір відновленого: {restored_size} байт")
+                print("=" * 60 + "\n")
+
                 messagebox.showinfo(
                     "Успіх",
                     f"Файл розшифровано та відновлено успішно!\n\n"
@@ -666,17 +720,20 @@ class DecryptWindow:
                     f"Розмір відновленого: {restored_size} байт"
                 )
             else:
+                print(f"\n[ПОМИЛКА Base64] {result}")
                 messagebox.showerror(
                     "Помилка",
                     f"Не вдалося відновити файл з Base64:\n{result}"
                 )
 
         except ValueError as ve:
+            print(f"\n[ПОМИЛКА ValueError] {str(ve)}")
             messagebox.showerror(
                 "Помилка розшифрування",
                 f"Не вдалося розшифрувати файл:\n{str(ve)}\n\nПеревірте правильність матриці та алфавіту."
             )
         except Exception as e:
+            print(f"\n[ПОМИЛКА] {str(e)}")
             messagebox.showerror(
                 "Помилка",
                 f"Виникла несподівана помилка:\n{str(e)}"
