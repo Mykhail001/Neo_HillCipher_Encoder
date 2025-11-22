@@ -39,6 +39,11 @@ class BruteForceWindow:
         self.results = []  # Список знайдених результатів (accuracy, matrix, params, decrypted_text)
         self.lock = threading.Lock()  # Для синхронізації потоків
 
+        # Поточна спроба (для відображення)
+        self.current_matrix = None
+        self.current_decrypted = None
+        self.update_timer_id = None
+
         self.create_widgets()
 
     def create_widgets(self):
@@ -324,6 +329,64 @@ class BruteForceWindow:
             font=FONT_ITALIC
         ).pack(pady=5)
 
+        # --- Поточна спроба (оновлюється кожну секунду) ---
+        tk.Label(
+            right_panel,
+            text="Поточна спроба:",
+            bg=BG_COLOR,
+            fg=FG_COLOR,
+            font=("Arial", 11, "bold")
+        ).pack(pady=(10, 5))
+
+        current_attempt_frame = tk.Frame(
+            right_panel,
+            bg=ACCENT_COLOR,
+            relief="ridge",
+            bd=2
+        )
+        current_attempt_frame.pack(pady=5, padx=20, fill="x")
+
+        # Поточна матриця
+        current_matrix_frame = tk.Frame(current_attempt_frame, bg=ACCENT_COLOR)
+        current_matrix_frame.pack(fill="x", padx=10, pady=5)
+
+        tk.Label(
+            current_matrix_frame,
+            text="Матриця:",
+            bg=ACCENT_COLOR,
+            fg=FG_COLOR,
+            font=FONT_BOLD
+        ).pack(side="left")
+
+        self.current_matrix_var = tk.StringVar(value="---")
+        tk.Label(
+            current_matrix_frame,
+            textvariable=self.current_matrix_var,
+            bg=ACCENT_COLOR,
+            fg="#FFAA00",  # Помаранчевий колір
+            font=("Courier", 10, "bold")
+        ).pack(side="left", padx=10)
+
+        # Поточний розшифрований текст
+        tk.Label(
+            current_attempt_frame,
+            text="Розшифровано:",
+            bg=ACCENT_COLOR,
+            fg=FG_COLOR,
+            font=FONT_BOLD
+        ).pack(anchor="w", padx=10)
+
+        self.current_decrypted_var = tk.StringVar(value="---")
+        tk.Label(
+            current_attempt_frame,
+            textvariable=self.current_decrypted_var,
+            bg=ACCENT_COLOR,
+            fg="#FFAA00",  # Помаранчевий колір
+            font=FONT_NORMAL,
+            wraplength=450,
+            justify="left"
+        ).pack(fill="x", padx=10, pady=(2, 8))
+
         # --- Заголовок результатів ---
         tk.Label(
             right_panel,
@@ -331,7 +394,7 @@ class BruteForceWindow:
             bg=BG_COLOR,
             fg=FG_COLOR,
             font=("Arial", 12, "bold")
-        ).pack(pady=(15, 10))
+        ).pack(pady=(10, 5))
 
         # --- 5 контейнерів результатів ---
         self.result_containers = []
@@ -493,11 +556,18 @@ class BruteForceWindow:
         self.successful_attempts = 0
         self.results = []
         self.brute_threads = []
+        self.current_matrix = None
+        self.current_decrypted = None
 
         # Оновлюємо UI
         self.start_button.config(text="Пауза")
         self.status_var.set("Виконується брутфорс (2 потоки)...")
         self.clear_results()
+        self.current_matrix_var.set("---")
+        self.current_decrypted_var.set("---")
+
+        # Запускаємо таймер оновлення поточної спроби (кожну секунду)
+        self.start_current_attempt_timer()
 
         # Запускаємо два потоки - один з початку, інший з кінця
         thread1 = threading.Thread(target=self.brute_force_worker, args=(False,), daemon=True)
@@ -535,6 +605,49 @@ class BruteForceWindow:
         self.is_paused = False
         self.start_button.config(text="Старт")
         self.status_var.set("Завершено")
+
+        # Зупиняємо таймер оновлення
+        self.stop_current_attempt_timer()
+        self.current_matrix_var.set("---")
+        self.current_decrypted_var.set("---")
+
+    def start_current_attempt_timer(self):
+        """Запуск таймера оновлення поточної спроби"""
+        self.update_current_attempt_display()
+
+    def stop_current_attempt_timer(self):
+        """Зупинка таймера оновлення"""
+        if self.update_timer_id is not None:
+            self.window.after_cancel(self.update_timer_id)
+            self.update_timer_id = None
+
+    def update_current_attempt_display(self):
+        """Оновлення відображення поточної спроби"""
+        if not self.is_running:
+            return
+
+        with self.lock:
+            matrix = self.current_matrix
+            decrypted = self.current_decrypted
+
+        if matrix is not None:
+            # Форматуємо матрицю для відображення
+            matrix_str = " | ".join([str(row) for row in matrix])
+            self.current_matrix_var.set(matrix_str)
+        else:
+            self.current_matrix_var.set("---")
+
+        if decrypted is not None:
+            # Обрізаємо текст до 80 символів
+            preview = decrypted[:80]
+            if len(decrypted) > 80:
+                preview += "..."
+            self.current_decrypted_var.set(preview)
+        else:
+            self.current_decrypted_var.set("---")
+
+        # Плануємо наступне оновлення через 1 секунду
+        self.update_timer_id = self.window.after(1000, self.update_current_attempt_display)
 
     def clear_results(self):
         """Очищення контейнерів результатів"""
@@ -648,12 +761,17 @@ class BruteForceWindow:
             # Успішна матриця (має обернену)
             with self.lock:
                 self.successful_attempts += 1
+                self.current_matrix = [row[:] for row in matrix]
 
             # Спробуємо розшифрувати
             try:
                 ciphertext_numbers = text_to_numbers(encrypted, self.alphabet)
                 dec_numbers = hill_decrypt_standard(ciphertext_numbers, matrix, self.alphabet)
                 decrypted = numbers_to_text(dec_numbers, self.alphabet)
+
+                # Зберігаємо поточний результат для відображення
+                with self.lock:
+                    self.current_decrypted = decrypted
 
                 # Обчислюємо точність
                 accuracy = self.calculate_accuracy(decrypted, expected)
@@ -722,6 +840,7 @@ class BruteForceWindow:
                     # Успішна матриця
                     with self.lock:
                         self.successful_attempts += 1
+                        self.current_matrix = [row[:] for row in matrix]
 
                     try:
                         decrypted = hill_decrypt_modified(
@@ -731,6 +850,10 @@ class BruteForceWindow:
                             substitution,
                             noise_length
                         )
+
+                        # Зберігаємо поточний результат для відображення
+                        with self.lock:
+                            self.current_decrypted = decrypted
 
                         accuracy = self.calculate_accuracy(decrypted, expected)
 
