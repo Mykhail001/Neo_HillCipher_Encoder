@@ -3,6 +3,7 @@
 """
 
 import os
+import time
 import tkinter as tk
 from tkinter import messagebox, filedialog
 from config import *
@@ -445,6 +446,8 @@ class EncryptWindow:
             return
 
         try:
+            start_time = time.time()
+
             if self.encryption_mode.get() == 0:
                 numbers = text_to_numbers(txt, self.alphabet)
                 enc_numbers = hill_encrypt_standard(
@@ -485,6 +488,10 @@ class EncryptWindow:
                     self.substitution_mapping,
                     noise_length
                 )
+
+            end_time = time.time()
+            encryption_time = end_time - start_time
+            print(f"Час шифрування тексту: {encryption_time:.6f} секунд")
 
             save_file(enc_txt, "encrypted.txt", "Зберегти зашифрований текст")
 
@@ -536,6 +543,8 @@ class EncryptWindow:
                 return
 
             # 4. Шифруємо
+            start_time = time.time()
+
             if self.encryption_mode.get() == 0:
                 # Стандартне шифрування
                 numbers = text_to_numbers(padded_text, self.alphabet)
@@ -578,6 +587,10 @@ class EncryptWindow:
                     self.substitution_mapping,
                     noise_length
                 )
+
+            end_time = time.time()
+            encryption_time = end_time - start_time
+            print(f"Час шифрування файлу: {encryption_time:.6f} секунд")
 
             # 5. Зберігаємо результат
             base_name = os.path.splitext(os.path.basename(self.selected_file_path))[0]
