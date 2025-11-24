@@ -51,7 +51,9 @@ class MatrixWindow:
         tk.Button(
             row2,
             text="Відкрити матрицю",
-            command=self.load_and_fill_matrix
+            command=self.load_and_fill_matrix,
+            bg=CELL_BG,
+            fg="black"
         ).pack(side="top", pady=5)
 
         # Режими роботи
@@ -74,8 +76,8 @@ class MatrixWindow:
             command=self.show_standard,
             width=25,
             height=2,
-            bg=BUTTON_BG,
-            fg=FG_COLOR,
+            bg=CELL_BG,
+            fg="black",
             relief="sunken"
         )
         self.btn_mode1.pack(side="left", padx=5)
@@ -86,8 +88,8 @@ class MatrixWindow:
             command=self.show_circular,
             width=25,
             height=2,
-            bg=BUTTON_BG,
-            fg=FG_COLOR,
+            bg=CELL_BG,
+            fg="black",
             relief="raised"
         )
         self.btn_mode2.pack(side="left", padx=5)
@@ -128,7 +130,9 @@ class MatrixWindow:
         tk.Button(
             size_frame,
             text="Підтвердити",
-            command=self.confirm_matrix_size
+            command=self.confirm_matrix_size,
+            bg=CELL_BG,
+            fg="black"
         ).pack(side="left", padx=5)
 
         # Визначник
@@ -153,7 +157,9 @@ class MatrixWindow:
         tk.Button(
             det_frame,
             text="Обчислити визначник",
-            command=self.calc_det
+            command=self.calc_det,
+            bg=CELL_BG,
+            fg="black"
         ).pack(side="left", padx=5)
 
         # Кнопка збереження
@@ -162,6 +168,7 @@ class MatrixWindow:
             text="Зберегти матрицю",
             font=FONT_BOLD,
             bg=BUTTON_BG,
+            fg=FG_COLOR,
             command=self.save_matrix
         ).pack(pady=10)
 
@@ -249,7 +256,9 @@ class MatrixWindow:
         tk.Button(
             no_sig_frame,
             text="Створити матрицю і підпис",
-            command=self.open_signature_window
+            command=self.open_signature_window,
+            bg=CELL_BG,
+            fg="black"
         ).pack(pady=10)
 
         # Кнопка створення матриці
@@ -258,6 +267,7 @@ class MatrixWindow:
             text="Створити матрицю",
             command=self.create_matrix_directly,
             bg=BUTTON_BG,
+            fg=FG_COLOR,
             font=FONT_BOLD
         ).pack(pady=10)
 
@@ -505,7 +515,9 @@ class MatrixWindow:
         tk.Button(
             sig_win,
             text="Створити підпис",
-            command=generate_signature
+            command=generate_signature,
+            bg=CELL_BG,
+            fg="black"
         ).pack(pady=10)
 
         tk.Button(
@@ -513,6 +525,7 @@ class MatrixWindow:
             text="Створити матрицю",
             command=save_generated_matrix,
             bg=BUTTON_BG,
+            fg=FG_COLOR,
             font=FONT_BOLD
         ).pack(pady=10)
 

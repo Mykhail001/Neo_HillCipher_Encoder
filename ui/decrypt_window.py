@@ -3,6 +3,7 @@
 """
 
 import os
+import time
 import tkinter as tk
 from tkinter import messagebox, filedialog
 import numpy as np
@@ -175,7 +176,9 @@ class DecryptWindow:
         tk.Button(
             self.subst_frame,
             text="Вибрати підстановку",
-            command=self.load_substitution
+            command=self.load_substitution,
+            bg=CELL_BG,
+            fg="black"
         ).pack(side="left", padx=2)
 
         # ==================== ДОВЖИНА ШУМУ ====================
@@ -188,7 +191,7 @@ class DecryptWindow:
             font=FONT_BOLD
         ).pack(side="left", padx=5)
 
-        self.noise_length_entry = tk.Entry(self.noise_frame, width=10)
+        self.noise_length_entry = tk.Entry(self.noise_frame, width=10, bg=CELL_BG, font=("Arial", 11))
         self.noise_length_entry.insert(0, "0")
         self.noise_length_entry.pack(side="left", padx=5)
 
@@ -214,14 +217,18 @@ class DecryptWindow:
             self.text_frame,
             width=60,
             height=10,
-            state="disabled"
+            state="disabled",
+            bg=CELL_BG,
+            font=("Arial", 11)
         )
         self.ciphertext_text.pack(pady=5)
 
         tk.Button(
             self.text_frame,
             text="Відкрити текстовий файл",
-            command=self.load_text
+            command=self.load_text,
+            bg=CELL_BG,
+            fg="black"
         ).pack(pady=5)
 
         self.text_frame.pack(pady=5)
@@ -315,7 +322,9 @@ class DecryptWindow:
         tk.Button(
             matrix_label_frame,
             text="Завантажити матрицю",
-            command=self.load_key_matrix
+            command=self.load_key_matrix,
+            bg=CELL_BG,
+            fg="black"
         ).pack(side="left", padx=5)
 
         # ==================== КНОПКА РОЗШИФРУВАННЯ ====================
@@ -488,6 +497,8 @@ class DecryptWindow:
 
         try:
             # ==================== РОЗШИФРУВАННЯ ====================
+            start_time = time.time()
+
             if self.decryption_mode.get() == 0:
                 # Стандартне розшифрування
                 ciphertext_numbers = text_to_numbers(txt, self.alphabet)
@@ -533,6 +544,10 @@ class DecryptWindow:
                     self.substitution_mapping_dec,
                     noise_length
                 )
+
+            end_time = time.time()
+            decryption_time = end_time - start_time
+            print(f"Час розшифрування тексту: {decryption_time:.6f} секунд")
 
             # ==================== ЗБЕРЕЖЕННЯ РЕЗУЛЬТАТУ ====================
             success = save_file(
@@ -592,6 +607,8 @@ class DecryptWindow:
             encrypted_length = len(encrypted_text)
 
             # 2. Розшифровуємо
+            start_time = time.time()
+
             if self.decryption_mode.get() == 0:
                 # Стандартне розшифрування
                 ciphertext_numbers = text_to_numbers(encrypted_text, self.alphabet)
@@ -636,6 +653,10 @@ class DecryptWindow:
                     self.substitution_mapping_dec,
                     noise_length
                 )
+
+            end_time = time.time()
+            decryption_time = end_time - start_time
+            print(f"Час розшифрування файлу: {decryption_time:.6f} секунд")
 
             # 3. Видаляємо padding
             clean_text, padding_removed = remove_padding(decrypted_text, padding_symbol)
