@@ -18,7 +18,7 @@ class MatrixWindow:
         self.window.state('zoomed')
         self.window.configure(bg=BG_COLOR)
 
-        self.mode_var = tk.StringVar(value="standard")
+        #self.mode_var = tk.StringVar(value="standard")
         self.generated_circular_matrix = []
         self.matrix_entries = []
 
@@ -69,30 +69,40 @@ class MatrixWindow:
         # Створення параметричного режиму
         self.create_circular_mode()
 
-        # Кнопки перемикання режимів
-        self.btn_mode1 = tk.Button(
+        # Кнопки перемикання режимів (у стилі Radiobutton)
+        self.mode_var = tk.IntVar(value=0)  # 0 = стандартний, 1 = параметричний
+
+        tk.Radiobutton(
             mode_frame,
             text="Стандартний режим",
-            command=self.show_standard,
+            variable=self.mode_var,
+            value=0,
+            indicatoron=0,
             width=25,
             height=2,
             bg=CELL_BG,
             fg="black",
-            relief="sunken"
-        )
-        self.btn_mode1.pack(side="left", padx=5)
+            selectcolor=ACCENT_COLOR,
+            activebackground=BUTTON_BG,
+            relief="raised",
+            command=self.show_standard
+        ).pack(side="left", padx=5)
 
-        self.btn_mode2 = tk.Button(
+        tk.Radiobutton(
             mode_frame,
             text="Параметричний режим",
-            command=self.show_circular,
+            variable=self.mode_var,
+            value=1,
+            indicatoron=0,
             width=25,
             height=2,
             bg=CELL_BG,
             fg="black",
-            relief="raised"
-        )
-        self.btn_mode2.pack(side="left", padx=5)
+            selectcolor=ACCENT_COLOR,
+            activebackground=BUTTON_BG,
+            relief="raised",
+            command=self.show_circular
+        ).pack(side="left", padx=5)
 
         self.show_standard()
 
@@ -587,7 +597,7 @@ class MatrixWindow:
     def save_matrix(self):
         """Зберегти матрицю"""
         try:
-            if self.mode_var.get() == "standard":
+            if self.mode_var.get() == 0:
                 mat = [[int(entry.get()) for entry in row]
                        for row in self.matrix_entries]
             else:
@@ -606,16 +616,12 @@ class MatrixWindow:
 
     def show_standard(self):
         """Показати стандартний режим"""
-        self.mode_var.set("standard")
+        self.mode_var.set(0)
         self.circular_frame.pack_forget()
         self.standard_frame.pack(pady=5)
-        self.btn_mode1.config(relief="sunken")
-        self.btn_mode2.config(relief="raised")
 
     def show_circular(self):
         """Показати параметричний режим"""
-        self.mode_var.set("circular")
+        self.mode_var.set(1)
         self.standard_frame.pack_forget()
         self.circular_frame.pack(pady=5)
-        self.btn_mode1.config(relief="raised")
-        self.btn_mode2.config(relief="sunken")
