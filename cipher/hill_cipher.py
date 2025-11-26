@@ -7,11 +7,61 @@ import secrets
 from utils.math_utils import matrix_mod_inverse
 
 
+def get_case_conversion_mode(alphabet):
+    """
+    Визначає режим конвертації регістру на основі складу алфавіту.
+
+    Повертає:
+    - 'upper': якщо алфавіт містить великі літери і не містить малих
+    - 'lower': якщо алфавіт містить малі літери і не містить великих
+    - None: якщо алфавіт містить обидва регістри або не містить літер
+    """
+    has_upper = False
+    has_lower = False
+
+    for char in alphabet:
+        if char.isupper() and char.lower() in alphabet:
+            # Є пара великої і малої літери - не конвертуємо
+            return None
+        if char.isupper():
+            has_upper = True
+        if char.islower():
+            has_lower = True
+
+    # Якщо є тільки великі літери - конвертуємо в великі
+    if has_upper and not has_lower:
+        return 'upper'
+
+    # Якщо є тільки малі літери - конвертуємо в малі
+    if has_lower and not has_upper:
+        return 'lower'
+
+    # Інакше не конвертуємо
+    return None
+
+
 def text_to_numbers(text, alphabet):
     """Конвертує текст в числа згідно з алфавітом"""
     if not isinstance(text, str):
         raise ValueError("Очікується текст, але отримано інший тип.")
-    return [alphabet.index(char) for char in text if char in alphabet]
+
+    # Визначаємо режим конвертації регістру
+    case_mode = get_case_conversion_mode(alphabet)
+
+    result = []
+    for char in text:
+        # Застосовуємо конвертацію регістру якщо потрібно
+        converted_char = char
+        if case_mode == 'upper':
+            converted_char = char.upper()
+        elif case_mode == 'lower':
+            converted_char = char.lower()
+
+        # Додаємо тільки ті символи, які є в алфавіті
+        if converted_char in alphabet:
+            result.append(alphabet.index(converted_char))
+
+    return result
 
 
 def numbers_to_text(numbers, alphabet):
