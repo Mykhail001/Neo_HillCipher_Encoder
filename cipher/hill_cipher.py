@@ -4,7 +4,7 @@
 
 import numpy as np
 import secrets
-from utils.math_utils import matrix_mod_inverse
+from utils.math_utils import matrix_mod_inverse, validate_matrix_determinant_reversibility
 
 
 def get_case_conversion_mode(alphabet):
@@ -74,6 +74,11 @@ def hill_encrypt_standard(numbers, key_matrix, alph):
     n = len(key_matrix)
     mod_val = len(alph)
 
+    # Перевірка оборотності детермінанта за модулем
+    is_valid, det, error_msg = validate_matrix_determinant_reversibility(key_matrix, mod_val)
+    if not is_valid:
+        raise ValueError(error_msg)
+
     numbers = numbers.copy()
     while len(numbers) % n != 0:
         numbers.append(0)
@@ -105,6 +110,12 @@ def hill_encrypt_modified(text, key_matrix, alph, subst_map, noise_length=0):
     numbers = text_to_numbers(text, alph)
     n = len(key_matrix)
     mod_val = len(alph)
+
+    # Перевірка оборотності детермінанта за модулем
+    is_valid, det, error_msg = validate_matrix_determinant_reversibility(key_matrix, mod_val)
+    if not is_valid:
+        raise ValueError(error_msg)
+
     mat = np.array(key_matrix, dtype=np.int64)
 
     if noise_length < 0:
