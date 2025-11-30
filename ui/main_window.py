@@ -13,6 +13,14 @@ class MainWindow:
         self.root.geometry("500x450")
         self.root.configure(bg=BG_COLOR)
 
+        # Track open windows
+        self.alphabet_window = None
+        self.substitution_window = None
+        self.matrix_window = None
+        self.encrypt_window = None
+        self.decrypt_window = None
+        self.brute_force_window = None
+
         self.create_widgets()
 
     def create_widgets(self):
@@ -85,33 +93,51 @@ class MainWindow:
         """
     def open_alphabet_window(self):
         """Відкрити вікно створення алфавіту"""
+        if self.alphabet_window is not None and self.alphabet_window.window.winfo_exists():
+            self.alphabet_window.window.focus()
+            return
         from ui.alphabet_window import AlphabetWindow
-        AlphabetWindow(self.root)
+        self.alphabet_window = AlphabetWindow(self.root)
 
     def open_substitution_window(self):
         """Відкрити вікно створення підстановки"""
+        if self.substitution_window is not None and self.substitution_window.window.winfo_exists():
+            self.substitution_window.window.focus()
+            return
         from ui.substitution_window import SubstitutionWindow
-        SubstitutionWindow(self.root)
+        self.substitution_window = SubstitutionWindow(self.root)
 
     def open_matrix_window(self):
         """Відкрити вікно створення матриці"""
+        if self.matrix_window is not None and self.matrix_window.window.winfo_exists():
+            self.matrix_window.window.focus()
+            return
         from ui.matrix_window import MatrixWindow
-        MatrixWindow(self.root)
+        self.matrix_window = MatrixWindow(self.root)
 
     def open_encrypt_window(self):
         """Відкрити вікно шифрування"""
+        if self.encrypt_window is not None and self.encrypt_window.window.winfo_exists():
+            self.encrypt_window.window.focus()
+            return
         from ui.encrypt_window import EncryptWindow
-        EncryptWindow(self.root)
+        self.encrypt_window = EncryptWindow(self.root)
 
     def open_decrypt_window(self):
         """Відкрити вікно розшифрування"""
+        if self.decrypt_window is not None and self.decrypt_window.window.winfo_exists():
+            self.decrypt_window.window.focus()
+            return
         from ui.decrypt_window import DecryptWindow
-        DecryptWindow(self.root)
+        self.decrypt_window = DecryptWindow(self.root)
 
     def open_brute_force_window(self):
         """Відкрити вікно брутфорсу"""
+        if self.brute_force_window is not None and self.brute_force_window.window.winfo_exists():
+            self.brute_force_window.window.focus()
+            return
         from ui.brute_force_window import BruteForceWindow
-        BruteForceWindow(self.root)
+        self.brute_force_window = BruteForceWindow(self.root)
 
     def run(self):
         """Запуск головного циклу"""

@@ -135,9 +135,9 @@ def base64_to_file(base64_text, output_dir, base_filename):
 
         # Формуємо шлях виходу
         if original_extension:
-            output_path = os.path.join(output_dir, f"{base_filename}_restored{original_extension}")
+            output_path = os.path.join(output_dir, f"{base_filename}_decrypted{original_extension}")
         else:
-            output_path = os.path.join(output_dir, f"{base_filename}_restored.bin")
+            output_path = os.path.join(output_dir, f"{base_filename}_decrypted.bin")
 
         with open(output_path, "wb") as f:
             f.write(decoded_bytes)
