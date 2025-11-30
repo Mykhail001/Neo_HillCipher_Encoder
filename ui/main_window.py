@@ -71,7 +71,7 @@ class MainWindow:
             width=25,
             height=2
         ).pack(pady=10)
-
+        """
         tk.Button(
             self.root,
             text="Брутфорс",
@@ -82,7 +82,7 @@ class MainWindow:
             width=25,
             height=2
         ).pack(pady=10)
-
+        """
     def open_alphabet_window(self):
         """Відкрити вікно створення алфавіту"""
         from ui.alphabet_window import AlphabetWindow

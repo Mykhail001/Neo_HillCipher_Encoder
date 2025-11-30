@@ -1,5 +1,5 @@
 """
-Hill Cipher MultiTool - Головний файл запуску
+Hill Cipher MultiTool
 """
 
 from ui.main_window import MainWindow
