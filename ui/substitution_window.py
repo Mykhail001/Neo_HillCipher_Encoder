@@ -204,12 +204,12 @@ class SubstitutionWindow:
         if numbers:
             info_text += f" | Макс. значення: {max_val}"
             if size > 0 and max_val >= size:
-                info_text += f" ⚠️ (має бути < {size})"
+                info_text += f" (має бути < {size})"
 
         # Перевірка на від'ємні значення
         negative_values = [n for n in numbers if n < 0]
         if negative_values:
-            info_text += f" | ⚠️ Від'ємні: {len(negative_values)}"
+            info_text += f" | Від'ємні: {len(negative_values)}"
 
         # Перевірка на дублікати
         if numbers:
@@ -217,10 +217,10 @@ class SubstitutionWindow:
             duplicates = {val: cnt for val, cnt in counts.items() if cnt > 1}
             if duplicates:
                 dup_count = sum(cnt - 1 for cnt in duplicates.values())
-                info_text += f" | ⚠️ Дублікати: {dup_count}"
+                info_text += f" | Дублікати: {dup_count}"
 
         if non_numeric:
-            info_text += f" | ⚠️ Нечислові значення: {', '.join(non_numeric[:5])}"
+            info_text += f" | Нечислові значення: {', '.join(non_numeric[:5])}"
             if len(non_numeric) > 5:
                 info_text += f"... (+{len(non_numeric) - 5})"
 

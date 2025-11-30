@@ -493,7 +493,7 @@ class EncryptWindow:
             encryption_time = end_time - start_time
             print(f"Час шифрування тексту: {encryption_time:.6f} секунд")
 
-            save_file(enc_txt, "encrypted.txt", "Зберегти зашифрований текст")
+            save_file(enc_txt, "text_encrypted.txt", "Зберегти зашифрований текст")
 
         except Exception as e:
             messagebox.showerror("Помилка", str(e))
@@ -594,7 +594,7 @@ class EncryptWindow:
 
             # 5. Зберігаємо результат
             base_name = os.path.splitext(os.path.basename(self.selected_file_path))[0]
-            default_name = f"{base_name}.encrypted"
+            default_name = f"{base_name}_encrypted"
 
             file_path = filedialog.asksaveasfilename(
                 initialfile=default_name,

@@ -552,7 +552,7 @@ class DecryptWindow:
             # ==================== ЗБЕРЕЖЕННЯ РЕЗУЛЬТАТУ ====================
             success = save_file(
                 dec_txt,
-                "decrypted.txt",
+                "text_decrypted.txt",
                 "Зберегти розшифрований текст"
             )
 
