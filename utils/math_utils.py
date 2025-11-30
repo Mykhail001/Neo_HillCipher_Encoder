@@ -204,6 +204,73 @@ def is_prime(n):
     return True
 
 
+def gcd(a, b):
+    """
+    Обчислює найбільший спільний дільник (НСД) двох чисел.
+
+    Args:
+        a: перше число
+        b: друге число
+
+    Returns:
+        int: НСД чисел a і b
+    """
+    a, b = abs(a), abs(b)
+    while b:
+        a, b = b, a % b
+    return a
+
+
+def is_coprime(a, b):
+    """
+    Перевіряє, чи є два числа взаємно простими (coprime).
+    Числа є взаємно простими, якщо їх НСД дорівнює 1.
+
+    Args:
+        a: перше число
+        b: друге число
+
+    Returns:
+        bool: True якщо числа взаємно прості, False інакше
+    """
+    return gcd(a, b) == 1
+
+
+def validate_matrix_determinant_reversibility(matrix, modulus):
+    """
+    Перевіряє, чи визначник матриці оборотний за модулем (coprime).
+    Для шифрування Хілла детермінант ключової матриці повинен бути взаємно простим з модулем.
+
+    Args:
+        matrix: ключова матриця
+        modulus: модуль (зазвичай розмір алфавіту)
+
+    Returns:
+        tuple: (is_valid, det, error_message)
+            - is_valid: True якщо детермінант оборотний
+            - det: значення детермінанта
+            - error_message: повідомлення про помилку (якщо is_valid = False)
+
+    Raises:
+        ValueError: якщо детермінант не оборотний за модулем
+    """
+    det = determinant_int(matrix)
+    det_mod = det % modulus
+
+    if det_mod == 0:
+        return False, det, f"Детермінант матриці ({det}) дорівнює 0 за модулем {modulus}. Матриця не оборотна!"
+
+    if not is_coprime(det_mod, modulus):
+        gcd_value = gcd(det_mod, modulus)
+        return False, det, (
+            f"Детермінант матриці ({det}, mod {modulus} = {det_mod}) не є взаємно простим з модулем {modulus}.\n"
+            f"НСД({det_mod}, {modulus}) = {gcd_value} ≠ 1.\n"
+            f"Матриця не має оберненої за модулем {modulus} та не може бути використана для шифрування!"
+        )
+
+    return True, det, ""
+
+
 def mod_inverse(a, m):
     """Обчислення модульного оберненого"""
     a = a % m
